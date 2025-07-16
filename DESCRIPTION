@@ -1,0 +1,15 @@
+Package: DECBioInfer
+Title: Inferencia Estadística
+Version: 0.0.0.9000
+Authors@R: 
+    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
+Description: Tutoriales interactivos de inferencia estadística. Curso introducción a la Bioestadística, Maestría en Epidemiología Clínica. Departamento de Epidemiología Clínica y Bioestadística. Pontificia Universidad Javeriana.
+License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
+    license
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Imports:
+    fontawesome, tidyverse, epiR, pwr
+Suggests: 
+    learnr

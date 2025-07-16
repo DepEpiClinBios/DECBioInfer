@@ -1,0 +1,193 @@
+---
+title: "Módulo 3: Estadística no paramétrica en R"
+author: "Erika J. Cantor"
+date: "Julio, 2025"
+output:
+  learnr::tutorial:
+    progressive: false
+    allow_skip: true
+    df_print: default
+runtime: shiny_prerendered
+description: >
+  Estadística no paramétrica tutorial en R.
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+# Attach packages:
+
+library(learnr)
+library(fontawesome)
+library(ggplot2)
+#gradethis::gradethis_setup()
+#tutorial_options(exercise.timelimit = 60)
+
+# Global code chunk settings:
+knitr::opts_chunk$set(tutorial.exercise.setup = "global")
+
+```
+
+
+
+```{r banner, echo=FALSE, results='asis'}
+htmltools::HTML("
+  <div style='
+    text-align: center;
+    margin-bottom: 20px;
+  '>
+    <img src='images/banner_central.png' style='
+      max-width: 100%;
+      height: auto;
+    '>
+  </div>
+")
+```
+  
+```{r, echo=FALSE, results='asis'}
+htmltools::tags$style(HTML("
+  h1 {
+    color: #1e90ff; /* Azul para títulos principales */
+  }
+
+  h2 {
+    color: #007bff; /* Azul brillante para subtítulos */
+  }
+
+  h3 {
+    color: #0056b3; /* Azul más oscuro para subtítulos más pequeños */
+  }
+"))
+```
+
+
+## Introducción
+
+
+<div class="alert alert-info" role="alert">
+Este tutorial interactivo le permitirá aplicar los conceptos aprendidos sobre  <strong> estadística no paramétrica </strong> mediante la ejecución de código en `R`. A través de ejemplos guiados y ejercicios prácticos, usted desarrollará habilidades para implementar pruebas estadísticas no paramétricas, interpretar sus resultados y tomar decisiones informadas en contextos donde no se cumplen los supuestos de normalidad. 
+</div>
+
+### ¿Qué aprenderá en esta actividad?
+
+Durante el taller, usted aplicará los siguientes conceptos:  
+
+- Pruebas de Normalidad.
+- Prueba chi-cuadrado. 
+- Prueba del signo y prueba de sumas de rangos de wilcoxon. 
+- Prueba U de Mann Whitney. 
+- Prueba de McNemar. 
+
+
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" alt="Licencia de Creative Commons" style="border-width:0"/></a><br />Esta obra está licenciada bajo
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">licencia
+de Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0
+Internacional</a>.
+
+##  ¿Cómo desarrollar este tutorial?
+
+A lo largo del tutorial, encontrará ejemplos de código, ejercicios de programación y preguntas de análisis. Los ejemplos de código y los ejercicios pretenden introducir habilidades básicas de `R`. No es
+necesario tener conocimientos previos sobre R para el desarrollo de este tutorial.
+
+#### `r fa("lightbulb", fill = "orange",  height="2em", width="2em")` = Ejemplo de código
+
+Este icono identifica ejemplos de código listos para usar. Es posible explorar, ejecutar y modificar este código para comprender el funcionamiento de cada función o comando. Para ejecutar el código, solo es necesario presionar el botón **Run code** en la esquina superior derecha.
+
+
+```{r, echo=FALSE, out.width="100%", fig.align = "center"}
+knitr::include_graphics("images/ejemplo.png")  
+```
+
+> **No es necesario preocuparse por “dañar” el código:** si se realizan modificaciones que generan errores, el ejemplo original puede restaurarse en cualquier momento mediante el botón **Start Over** en la esquina superior izquierda.
+
+
+#### `r fa("pencil-alt", fill = "green", height="2em", width="2em")` = Ejercicio de código
+
+Los ejercicios están diseñados para aplicar lo aprendido, escribiendo el código necesario para resolver las preguntas o problemas planteados.
+
+> **Si siente que se ha quedado sin ideas o no sabe cómo continuar con el ejercicio:** puede consultar el botón **Solution** (solución) o **Hint** (pista) para recibir orientación sin perder la oportunidad de aprender activamente.
+
+```{r, echo=FALSE, out.width="100%", fig.align = "center"}
+knitr::include_graphics("images/ejercicio.png")  
+```
+
+#### `r fa("comments", fill = "#2c5697", height="2em", width="2em")` = Preguntas de análisis
+
+Estas preguntas invitan a reflexionar sobre los resultados y conceptos. Algunas no poseen una única respuesta correcta, sino que buscan fomentar el pensamiento crítico. Con frecuencia, estas preguntas están vinculadas con un ejemplo o ejercicio de código, y pueden requerir la ejecución de dicho código para obtener la información necesaria para responderlas.
+
+## Explorando el Nacimiento con Datos
+
+
+<div style="background-color: #f8f9fa; color: #212529; border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+En este taller, usted trabajará con la base de datos `birthwt`, que contiene información sobre el peso al nacer de  189 nacidos vivos en 1986 en el Bay state Medical Center, Springfield. Las variables recolectadas fueron: 
+</div>
+  
+- Bajo Peso (`low`): 0: Peso Normal (>2.5Kg) 1: Bajo peso (<2.5 Kg)
+
+- Edad de la madre en años (`age`).
+
+- Peso de la madre en libras (`lwt`)
+
+- Raza de la madre (`race`): 1: Blanco, 2: Negro, 3: Otra.
+
+- Fumar (`smoke`): 1: Si, 0: No.
+
+- Antecedente de Hipertensión (`ht`):  1: Si, 0: No.
+
+- Número  de partos prematuros previos (`ptl`).
+
+- Irritación uterina (`ui`): 1: Si, 0: No
+
+- Número de Visitas en el primer trimestre (`ftv`).
+
+
+La base de datos puede ser cargados por medio del siguiente código en `R`:
+
+```{r global, exercise=FALSE}
+# Datos
+datos <- MASS::birthwt
+```
+
+## Organizando mis datos
+
+Antes de iniciar con el análisis, primero vamos a recodificar algunas variables categóricas del conjunto de datos `datos`. En particular, transformaremos las variables `low`, `race`, `smoke`, `ht`y `ui`  en cualitativas con etiquetas más descriptivas que faciliten la interpretación.
+
+```{r etiq1, exercise=TRUE,  exercise.setup="global"}
+datos$low <- factor(datos$low, labels = c("Normal", "Bajo Peso"))
+datos$race <- factor(datos$race, labels = c("Blanco", "Negro", "Otro"))
+datos$smoke <- factor(datos$smoke, labels = c("No fuma", "Fuma"))
+datos$ht    <- factor(datos$ht, labels = c("No", "Sí"))
+datos$ui    <- factor(datos$ui, labels = c("No", "Sí"))
+
+head(datos)
+```
+
+Ahora que hemos recodificado las variables, podemos explorar el conjunto de datos para verificar que las etiquetas se hayan aplicado correctamente.
+
+
+```{r skim, exercise=TRUE,  exercise.setup="global"}
+head(datos)
+```
+
+
+## Pruebas de Normalidad
+
+Evaluar el ajuste a la normalidad es un paso crucial antes de aplicar pruebas estadísticas. En este caso, utilizaremos la prueba de Shapiro-Wilk para evaluar si las variables `age`, `lwt` y `bwt` siguen una distribución normal.
+
+
+En `R`, la función `shapiro.test()` permite aplicar la prueba de Shapiro-Wilk para evaluar si una variable sigue una distribución normal. De manera complementaria, esta evaluación también puede realizarse visualmente mediante un gráfico Q-Q, utilizando la función `qqPlot()`.
+
+Supongamos que nos interesa conocer si la variable `bwt` (peso al nacer) sigue una distribución normal, en `R` podemos realizar la prueba de normalidad de la siguiente manera:
+
+```{r norm1, exercise=TRUE,  exercise.setup="global"}
+# Prueba de normalidad para la variable 'bwt'
+shapiro.test(datos$bwt)
+
+# Gráfico Q-Q para la variable 'bwt'
+car::qqPlot(datos$bwt, main = "Q-Q Plot de bwt")
+```
+
+
+
+

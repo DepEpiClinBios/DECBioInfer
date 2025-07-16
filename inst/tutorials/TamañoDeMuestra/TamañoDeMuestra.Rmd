@@ -1,0 +1,686 @@
+---
+title: "Módulo 3: Tamaño de la muestra en R"
+author: "Erika J. Cantor"
+date: "Julio, 2025"
+output:
+  learnr::tutorial:
+    progressive: false
+    allow_skip: true
+    df_print: default
+runtime: shiny_prerendered
+description: >
+  Tutorial para el cálculo del tamaño de la muestra en R.
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+# Attach packages:
+
+library(learnr)
+library(fontawesome)
+library(ggplot2)
+library(tidyverse)
+library(epiR)
+library(pwr)
+
+# Global code chunk settings:
+knitr::opts_chunk$set(tutorial.exercise.setup = "global")
+
+```
+
+
+
+```{r banner, echo=FALSE, results='asis'}
+htmltools::HTML("
+  <div style='
+    text-align: center;
+    margin-bottom: 20px;
+  '>
+    <img src='images/banner_central.png' style='
+      max-width: 100%;
+      height: auto;
+    '>
+  </div>
+")
+```
+ 
+```{r, echo=FALSE, results='asis'}
+htmltools::tags$style(HTML("
+  h1 {
+    color: #1e90ff; /* Azul para títulos principales */
+  }
+
+  h2 {
+    color: #007bff; /* Azul brillante para subtítulos */
+  }
+
+  h3 {
+    color: #0056b3; /* Azul más oscuro para subtítulos más pequeños */
+  }
+"))
+```
+
+
+## Introducción
+
+
+
+```{r, echo=FALSE, out.width="100%", fig.align = "center"}
+knitr::include_graphics("images/banner1d.png")  
+```
+
+
+<div class="alert alert-info" role="alert">
+Este tutorial interactivo le permitirá aplicar los conceptos aprendidos sobre los aspectos relevantes involucrados en el  <strong>tamaño de la muestra </strong> mediante la ejecución de código en `R`. A través de ejemplos guiados y ejercicios prácticos, usted desarrollará habilidades para elegir y aplicar la fórmula adecuada de acuerdo con los requerimientos y objetivos de una investigación con el fin de tomar decisiones informadas.
+</div>
+
+### ¿Qué aprenderá en esta actividad?
+
+Durante el tutorial, usted aplicará los siguientes conceptos:  
+
+- Identificación de los elementos necesarios para el cálculo del tamaño muestral.
+
+- Determinación del nivel de confianza.
+
+- Error Tipo II/Poder.
+
+- Diferencia mínima significativa.  
+
+
+<h3>Créditos</h3>
+
+<p><strong>Autor:</strong> Erika J. Cantor</p>
+<p><strong>Afiliación:</strong> Departamento de Epidemiología Clínica y Bioestadística, Facultad de Medicina. Pontificia Universidad Javeriana</p>
+<p><strong>Contacto:</strong> <a href="mailto:erika.cantor@javeriana.edu.co">erika.cantor@javeriana.edu.co</a></p>
+
+<p>Este tutorial ha sido desarrollado como parte del curso de <em>Introducción a la Bioestadística en la Maestría en Epidemiología Clínica</em>.</p>
+
+
+
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" alt="Licencia de Creative Commons" style="border-width:0"/></a><br />Esta obra está licenciada bajo
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">licencia
+de Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0
+Internacional</a>.
+
+##  ¿Cómo desarrollar este tutorial?
+
+A lo largo del tutorial, encontrará ejemplos de código, ejercicios de programación y preguntas de análisis. Los ejemplos de código y los ejercicios pretenden introducir habilidades básicas de `R`. No es
+necesario tener conocimientos previos sobre R para el desarrollo de este tutorial.
+
+#### `r fa("lightbulb", fill = "orange",  height="2em", width="2em")` = Ejemplo de código
+
+Este icono identifica ejemplos de código listos para usar. Es posible explorar, ejecutar y modificar este código para comprender el funcionamiento de cada función o comando. Para ejecutar el código, solo es necesario presionar el botón **Run code** en la esquina superior derecha.
+
+
+```{r, echo=FALSE, out.width="100%", fig.align = "center"}
+knitr::include_graphics("images/ejemplo.png")  
+```
+
+> **No es necesario preocuparse por “dañar” el código:** si se realizan modificaciones que generan errores, el ejemplo original puede restaurarse en cualquier momento mediante el botón **Start Over** en la esquina superior izquierda.
+
+
+#### `r fa("pencil-alt", fill = "green", height="2em", width="2em")` = Ejercicio de código
+
+Los ejercicios están diseñados para aplicar lo aprendido, escribiendo el código necesario para resolver las preguntas o problemas planteados.
+
+> **Si siente que se ha quedado sin ideas o no sabe cómo continuar con el ejercicio:** puede consultar el botón **Solution** (solución) o **Hint** (pista) para recibir orientación sin perder la oportunidad de aprender activamente.
+
+```{r, echo=FALSE, out.width="100%", fig.align = "center"}
+knitr::include_graphics("images/ejercicio.png")  
+```
+
+#### `r fa("comments", fill = "#2c5697", height="2em", width="2em")` = Preguntas de análisis
+
+Estas preguntas invitan a reflexionar sobre los resultados y conceptos. Algunas no poseen una única respuesta correcta, sino que buscan fomentar el pensamiento crítico. Con frecuencia, estas preguntas están vinculadas con un ejemplo o ejercicio de código, y pueden requerir la ejecución de dicho código para obtener la información necesaria para responderlas.
+
+## Calcular el tamaño de la muestra con `epiR` y `pwr`
+
+Las funciones utilizadas en este tutorial utilizan las fórmulas presentadas en el    <a rel="link" href="https://research.ebsco.com/c/lckhto/search/details/5k52mkdckf?limiters=FT1%3AY&q=epidemiolog%C3%ADa%20cl%C3%ADnica" target="_blank">Capitulo 6: Cálculo del tamaño de la muestra del libro "Epidemiología Clínica: Investigación Clínica Aplicada"</a> de la Universidad Javeriana.  Durante este tutorial utilizaremos las funciones implementadas en el paquete <a rel="link" href="https://cran.r-project.org/web/packages/epiR/epiR.pdf" target="_blank">epiR</a> y <a rel="link" href="https://cran.r-project.org/web/packages/pwr/pwr.pdf" target="_blank">prw</a>. Estos paquetes son ampliamente utilizados en epidemiología y bioestadística, y ofrecen diversas funciones para determinar el tamaño de la muestra  ya sea para estimar una media, una proporción, una diferencia de medias entre grupos o una diferencia de proporciones. Adicionalmente, también permiten realizar el cálculo de acuerdo al diseño del estudio (cohortes o casos y controles). 
+
+Las funciones que utilizaremos en el presente tutorial son:
+
+
+- `epiR::epi.sssimpleestb()`: Tamaño de la muestra para estimar una proporción.
+
+- `pwr::pwr.2p.test()`: Tamaño muestral para comparar dos propociones.
+
+- `epiR::epi.sssimpleestc()`: Tamaño muestral para estimar una media poblacional.
+
+- `pwr:: pwr.t.test()`: Tamaño muestral para comparar dos medias.
+
+- `epiR::epi.sscohortc()`: Tamaño muestral para estudios de cohortes.
+
+- `epiR::epi.sscc()`: Tamaño muestral para estudios de casos y controles.
+
+Recuerde que usted puede utilizar estas funciones cargando el paquete `epiR` con el comando `library(epiR)` y el paquete `pwr` con el comando `library(pwr)`. No es necesario instalar ningún paquete adicional para este tutorial.
+
+
+## Tamaño de muestra para una proporción
+
+
+<div style="background-color: #f0f0f0; padding: 15px; border-radius: 5px;">
+Un equipo de investigadores desea estimar la prevalencia de hipertensión arterial en adultos mayores de 65 años que asisten a un hospital de Bogotá. Estudios previos sugieren que la prevalencia está alrededor del 40%. Desean que la estimación tenga un margen de error del 5% y un nivel de confianza del 95%.
+</div>
+
+### 🎯 ¡Analicemos el enunciado!
+
+En este caso, el equipo de investigadores quiere calcular el tamaño de la muestra necesario para estimar una proporción, dado que el objetivo es poder estimar la prevalencia de hipertensión arterial en adultos mayores de 65 años en un sólo hospital de Bógotá y es el único paramétro de interés.
+
+Cómo se mencionó en las lecturas de la actividad 1, el cálculo de la muestra para una proporción require especificar previamente los siguientes factores de la fórmula:
+
+- Proporción esperada (p): En este caso, la proporción esperada es del 40% (0.40). En la vida real, esta información es posible obtenerla a partir de estudios previos o de la literatura científica.
+
+- Nivel de confianza ($Z_{\alpha}$): Para un nivel de confianza del 95%, el valor de Z es 1.96. Este valor se obtiene de la tabla de la distribución normal estándar. En `R` se podría obetener por medio de la función `qnorm(1-alfa/2)`.
+
+- Precisión buscada o error de estimación ($\epsilon$): En este caso, el equipo de investigadores desea un margen de error del 5% (0.05), es decir, ellos quieren que la estimación de la prevalencia de hipertensión arterial no se aleje más del 5% del valor real.
+
+Ahora, estamos listos para indicarle a `R` cómo calcular el tamaño de la muestra. Para ello, utilizaremos la función `epi.sssimpleestb()` del paquete `epiR`. Esta función requiere que le indiquemos los valores de los parámetros mencionados anteriormente. A continuación, se muestra un ejemplo de cómo utilizar esta función con los datos del problema anterior:
+
+```{r ssprop1, exercise=TRUE}
+# Calcular el tamaño de la muestra para una proporción
+epiR::epi.sssimpleestb(
+  N = NA,                   # Tamaño de la población (opcional)
+  Py = 0.40,                # Proporción esperada (Requerido)
+  epsilon = 0.05,           # Precisión buscada (Requerido)
+  conf.level = 0.95,        # Nivel de confianza (Requerido)
+  se = 1,                   # Valor por defecto (No cambiar)
+  sp = 1,                   # Valor por defecto (No cambiar)
+  error= "absolute"         # Valor por defecto (No cambiar)
+)
+
+```
+
+Aquí los argumentos  `se` y `sp` son fijados en 1 asumiendo que la prueba utilizada para detectar los casos tiene una sensibilidad y especificidad del 100%. El argumento `N` se utiliza para especificar el tamaño de la población, pero si no se conoce o no es relevante, se puede dejar como `NA`.
+
+<div style="background-color: #d4f7c5; padding: 15px; border-radius: 5px; color: #1e3d00;">
+En este caso entonces, se requieren **369** sujetos para estimar la prevalencia de hipertensión arterial en adultos mayores de 65 años con un margen de error del 5% y un nivel de confianza del 95%.
+</div>
+
+### 🧠 Desafío 1
+
+<div class="alert alert-warning" role="alert">
+  <strong>¡Atención!</strong> Una investigadora quiere estimar la prevalencia de infección por VIH en embarazadas que asisten a controles prenatales en una red hospitalaria regional. Se sabe que la prevalencia estimada en esta población es 1.5%. Se desea estimarla con una precisión de ±0.5% y un nivel de confianza del 95%. La población total de embarazadas que asisten en un año es de 4.500.
+
+✍️ Es su turno! Emplee los siguientes chunk (bloque) para escribir el código de `R` y ayudar a la investigadora.
+
+```{r ssprop1-ejerc1, exercise=TRUE}
+
+
+```
+
+
+```{r ssprop1-ejerc1-solution}
+# Calcular el tamaño de la muestra para una proporción
+
+epiR::epi.sssimpleestb(
+  N = 4500,                 # Tamaño de la población (opcional)
+  Py = 0.015,               # Proporción esperada (Requerido)
+  epsilon = 0.005,          # Precisión buscada (Requerido)
+  conf.level = 0.95,        # Nivel de confianza (Requerido)
+  se = 1,                   # Valor por defecto (No cambiar)
+  sp = 1,                   # Valor por defecto (No cambiar)
+  error= "absolute"         # Valor por defecto (No cambiar)
+)
+```
+</div>
+
+<div class="alert alert-info" role="alert">
+🗣️ **Nota**: Lo invitamos a socializar sus hallazgos en el foro de la semana.
+</div>
+
+
+## Tamaño de muestra para comparar dos proporciones
+
+
+<div style="background-color: #f0f0f0; padding: 15px; border-radius: 5px;">
+Un grupo de investigadores diseña un ensayo clínico aleatorizado para evaluar la eficacia de una nueva vacuna contra la influenza en adultos mayores de 65 años. En estudios anteriores, la incidencia de influenza en adultos sin vacuna fue de 12%. Se espera que la nueva vacuna reduzca esta proporción al 6%. El ensayo tendrá una asignación 1:1 (la misma cantidad de sujetos en grupo intervención y control). Se desea un poder estadístico del 90% y un nivel de confianza del 95% para detectar esa diferencia entre grupos.
+</div>
+
+### 🎯 ¡Analicemos el enunciado!
+
+En este caso, el equipo de investigadores quiere calcular el tamaño de la muestra necesario para la diferencia de proporciones, es decir, se desea conocer el número de sujetos necesarios para detectar una diferencia entre la proporción (que corresponde a la incidencia en este caso) de influenza entre aquellos que reciben la vacuna ($p_1$) y los que no ($p_2$).  Para esto, se requiere identificar los siguientes factores de la fórmula:
+
+- Proporción esperada en el grupo de intervención ($p_1$): En este caso, la proporción esperada es del 6% (0.06). Este valor corresponde a la proporción de incidencia de influenza en adultos mayores que reciben la nueva vacuna.
+
+- Proporción esperada en el grupo de control ($p_2$): En este caso, la proporción esperada es del 12% (0.12). Este valor corresponde a la proporción de incidencia de influenza en adultos mayores que no reciben la nueva vacuna.
+
+- Error tipo I ($Z_{\alpha}$): Para un nivel de confianza del 95%, el valor de Z es 1.96. Este valor se obtiene de la tabla de la distribución normal estándar. En `R` se podría obetener por medio de la función `qnorm(1-alfa/2)`.  Aquí tambien es importante tener presente la direccionalidad de la prueba, es decir, si se trata de una prueba bilateral o unilateral. En este caso, como se trata de un ensayo clinico se debe realizar de forma bilateral para que el estudio sea capaz de detectar si hay una diferencia en cualquier dirección entre los grupos, es decir, determinar si la vacuna es **mejor** o **peor **que el control.
+
+- Poder ($Z_{1-\beta}$): En este caso, el poder estadístico deseado es del 90%, lo que significa que se desea tener un 90% de probabilidad de detectar una diferencia si realmente existe. El valor de Z correspondiente a un poder del 90% es 1.28. Este valor se obtiene de la tabla de la distribución normal estándar. En `R` se podría obtener por medio de la función `qnorm(1-beta)`.
+
+Ahora, estamos listos para indicarle a `R` cómo calcular el tamaño de la muestra. Para ello, utilizaremos la función `pwr.2p.test()` del paquete `pwr`, la cual reporta el número requerido por grupo. Esta función requiere que le indiquemos los valores de los parámetros mencionados anteriormente. A continuación, se muestra un ejemplo de cómo utilizar esta función con los datos del problema anterior:
+
+```{r sspropdif1, exercise=TRUE}
+# Calcular el tamaño de la muestra para la diferencia de proporciones
+pwr:: pwr.2p.test(
+  h = ES.h(p1 = 0.06,       # Proporción esperada (p1) (Requerido)
+  p2 = 0.12),               # Proporción esperada (p2) (Requerido)
+  sig.level = 0.05,         # Nivel de alfa (Requerido)
+  power = .90,              # Poder estadístico (Requerido)
+  alternative="two.sided"   # Direccionalidad ("two.sided" (default), "greater" or "less")
+  )
+```
+
+
+<div style="background-color: #d4f7c5; padding: 15px; border-radius: 5px; color: #1e3d00;">
+En este caso entonces, se requieren **465** sujetos en cada grupo.
+</div>
+
+
+### 🧠 Desafío 1
+
+<div class="alert alert-warning" role="alert">
+  <strong>¡Atención!</strong> Una dirección regional de salud desea investigar si existe una diferencia significativa en el uso regular de protector solar entre personas que residen en zonas urbanas y zonas rurales. Estudios previos indican que aproximadamente el 65% de las personas en zonas urbanas usan protector solar regularmente, mientras que esta proporción es del 50% en zonas rurales. El objetivo del estudio es demostrar que la proporción de uso en zonas urbanas es mayor que en zonas rurales por medio de un estudio observacional transversal, utilizando los siguientes criterios:
+
+- Nivel de confianza: 95%
+
+- Poder estadístico: 80%
+  
+**¿Cuál es el número mínimo de sujetos en cada grupo?**
+
+✍️ Es su turno! Emplee los siguientes chunk (bloque) para escribir el código de `R` y ayudar a la dirección regional.
+
+```{r sspropdif1-ejerc1, exercise=TRUE}
+
+
+```
+
+
+```{r sspropdif1-ejerc1-solution}
+library(epiR)
+# Calcular el tamaño de la muestra para la diferencia de proporciones
+pwr:: pwr.2p.test(
+  h = ES.h(p1 = 0.65,       # Proporción esperada (p1) (Requerido)
+  p2 = 0.50),               # Proporción esperada (p2) (Requerido)
+  sig.level = 0.05,         # Nivel de alfa (Requerido)
+  power = .80,              # Poder estadístico (Requerido)
+  alternative="greater"     # Direccionalidad ("two.sided" (default), "greater" or "less")
+  )
+```
+</div>
+
+<div class="alert alert-info" role="alert">
+🗣️ **Nota**: Lo invitamos a socializar sus hallazgos en el foro de la semana.
+</div>
+
+
+## Tamaño de muestra para una media
+
+
+<div style="background-color: #f0f0f0; padding: 15px; border-radius: 5px;">
+En una ciudad con altos niveles de contaminación del aire, las autoridades sanitarias desean evaluar el impacto de la exposición prolongada al material particulado fino (PM2.5) en la función pulmonar de la población adulta. Para ello, se busca estimar la media del volumen espiratorio forzado en un segundo (VEF1) en adultos mayores entre 35 y 70 años que residen en zonas de alta contaminación.
+
+Como parte del equipo técnico, usted debe determinar el tamaño de muestra necesario para estimar la media del VEF1 con un nivel de confianza del 95% y un margen de error máximo aceptable de 100 ml. Un reporte del Estudio Epidemiológico Prospectivo Urbano y Rural PURE global reportó una desviación estándar aproximada de 705 ml.
+</div>
+
+
+### 🎯 ¡Analicemos el enunciado!
+
+En este caso, el equipo de investigadores quiere calcular el tamaño de la muestra necesario para estimar una media, es decir, se desea conocer el número de sujetos necesarios para estimar la media del VEF1 en adultos mayores entre 35 y 70 años que residen en zonas de alta contaminación. Para esto, se requiere identificar los siguientes factores de la fórmula:
+
+- Desviación estándar ($\sigma$): En este caso, la desviación estándar es de 705 ml. Este valor se obtiene a partir de estudios previos o de la literatura científica.
+
+- Precisión buscada o Error de estimación ($\epsilon$): En este caso, el equipo de investigadores desea un margen de error máximo aceptable de 100 ml. Este valor se obtiene a partir de los objetivos del estudio.
+
+- Nivel de confianza ($Z_{\alpha}$): Para un nivel de confianza del 95%, el valor de Z es 1.96. Este valor se obtiene de la tabla de la distribución normal estándar. En `R` se podría obetener por medio de la función `qnorm(1-alfa/2)`.
+
+Ahora, estamos listos para indicarle a `R` cómo calcular el tamaño de la muestra. Para ello, utilizaremos la función `epi.sssimpleestc()` del paquete `epiR`. Esta función requiere que le indiquemos los valores de los parámetros mencionados anteriormente. Adicionalmente, para que la función pueda calcular el tamaño de la muestra, es necesario indicar cuál sería el valor esperado de la media a estimar por medio del argumento `xbar`, sin embargo, este valor no debe ser exacto dado que no será utilizado para calcular el tamaño de la muestra.
+
+A continuación, se muestra un ejemplo de cómo utilizar esta función con los datos del problema anterior:
+
+```{r ssmean1, exercise=TRUE}
+# Calcular el tamaño de la muestra para una media
+epiR::epi.sssimpleestc(
+  N = NA,                   # Tamaño de la población  (opcional)
+  xbar = 2000,              # Media esperada (Requerido)
+  sigma = 705,              # Desviación estándar (Requerido)
+  epsilon = 100,            # Precisión buscada (Requerido)
+  error = "absolute",       # Tipo de error (No modificar)
+  conf.level = 0.95,        # Nivel de confianza (Requerido)
+  )
+
+```
+
+<div style="background-color: #d4f7c5; padding: 15px; border-radius: 5px; color: #1e3d00;">
+En este caso se requiere incluir **191** sujetos entre los 35 y 70 años para estimar la media de FEV1.
+</div>
+
+
+### 🧠 Desafío 1
+
+<div class="alert alert-warning" role="alert">
+  <strong>¡Atención!</strong> Un hospital de la ciudad de Bogotá desea conocer cuál es la calidad de vida de pacientes con artritis reumatoide mayores de 45 años. Para ello, se propone estimar la media del puntaje de calidad de vida utilizando una escala visual analoga (EVA) en una escala de 0 (peor salud imaginable) a 100 (la mejor salud posible). En un estudio previo en población Colombiana, se reportó que la desviación estándar del puntaje es de 9.2 puntos. El hospital desea que la estimación tenga un margen de error máximo de 1.5 puntos y un nivel de confianza del 99%.
+
+✍️ Es su turno! Emplee los siguientes chunk (bloque) para escribir el código de `R` y ayudar al hospital.
+
+```{r ssmean1-ejerc1, exercise=TRUE}
+
+
+```
+
+
+```{r ssmean1-ejerc1-solution}
+# Calcular el tamaño de la muestra para una media
+epiR::epi.sssimpleestc(
+  N = NA,                   # Tamaño de la población  (opcional)
+  xbar = 85,              # Media esperada (Requerido)
+  sigma = 9.2,              # Desviación estándar (Requerido)
+  epsilon = 1.5,            # Precisión buscada (Requerido)
+  error = "absolute",       # Tipo de error (No modificar)
+  conf.level = 0.99,        # Nivel de confianza (Requerido)
+  )
+```
+</div>
+
+<div class="alert alert-info" role="alert">
+🗣️ **Nota**: Lo invitamos a socializar sus hallazgos en el foro de la semana.
+</div>
+
+## Tamaño de muestra para comparar dos medias
+
+<div style="background-color: #f0f0f0; padding: 15px; border-radius: 5px;">
+En un estudio clínico se desea comparar la eficacia de dos medicamentos antihipertensivos: amlodipino y nifedipino-GITS, en la reducción de la presión arterial sistólica matutina (medida entre las 05:00 y las 08:00 h) después de 8 semanas de tratamiento. Estudios previos han reportado que la desviación estándar de la presión sistólica matutina en pacientes hipertensos es de aproximadamente 12 mmHg. Se espera que la diferencia media en la reducción de presión sistólica entre ambos medicamentos sea de 4 mmHg, a favor de amlodipino. Con un nivel de significancia 0.05 y una potencia estadística del 90%, ¿Cuá es el el tamaño de muestra necesario por grupo para detectar esta diferencia esperada en la presión arterial entre los dos tratamientos? 
+</div>
+
+
+### 🎯 ¡Analicemos el enunciado!
+
+En este caso, el equipo de investigadores quiere calcular el tamaño de la muestra necesario para la diferencia de medias, es decir, se desea conocer el número de sujetos necesarios para detectar una diferencia entre la media de la presión arterial sistólica matutina en pacientes hipertensos que reciben amlodipino ($\mu_1$) y nifedipino-GITS ($\mu_2$). Para esto, se requiere identificar los siguientes factores de la fórmula:
+
+- Diferencia esperada entre las medias ($\mu_1 - \mu_2$): En este caso, la diferencia esperada es de 4 mmHg. Este valor se obtiene a partir de estudios previos o de la literatura científica. No obstante, es importante tener en cuenta que este valor debe ser clínicamente relevante, es decir, debe ser una diferencia que tenga un impacto significativo en la salud de los pacientes o en el contexto de estudio.
+
+- Desviación estándar ($sd$): En este caso, la desviación estándar de la variable de resultado es de 12 mmHg. Este valor se obtiene a partir de estudios previos o de la literatura científica. 
+
+- Error tipo I ($Z_{\alpha}$): Para un nivel de confianza del 95%, el valor de Z es 1.96. Este valor se obtiene de la tabla de la distribución normal estándar. En `R` se podría obetener por medio de la función `qnorm(1-alfa/2)`. Este valor depende de la direccionalidad de la hipotesis, es decir, si se trata de una prueba bilateral o unilateral. En este caso, como se trata de un ensayo clinico se debe realizar de forma bilateral para que el estudio sea capaz de detectar si hay una diferencia en cualquier dirección entre los grupos, es decir, determinar si el amlodipino es **mejor** o **peor** que el nifedipino-GITS.
+
+- Poder ($Z_{1-\beta}$): En este caso, el poder estadístico deseado es del 90%, lo que significa que se desea tener un 90% de probabilidad de detectar una diferencia si realmente existe. El valor de Z correspondiente a un poder del 90% es 1.28. Este valor se obtiene de la tabla de la distribución normal estándar. En `R` se podría obtener por medio de la función `qnorm(1-beta)`.
+
+Ahora, estamos listos para indicarle a `R` cómo calcular el tamaño de la muestra. Para ello, utilizaremos la función `pwr.t.test()` del paquete `pwr`. Esta función requiere que le indiquemos los valores de los parámetros mencionados anteriormente.  Esta formula basa su cálculo utilizando el tamaño del efecto de Cohen, tambien conocido como **d de Cohen**, que se calcula como la diferencia esperada entre las medias dividida por la desviación estándar. La d de Cohen expresa la diferencia entre las medias en términos de desviaciones estándar. Por ejemplo, una d de Cohen de 0.35 se puede interpretar que la diferencia mínima  deseada entre las medias equivale a  0.35 desviaciones estándar.
+
+A continuación, se muestra un ejemplo de cómo utilizar esta función con los datos del problema anterior:
+
+```{r ssmeancomp2, exercise=TRUE}
+
+# Valores de los factores de acuerdo con el problema
+
+diff=4                               # Diferencia esperada entre las medias (Requerido)
+sd=12                                # Desviación estándar (Requerido)
+dcohen=abs(diff)/sd                  # Cálculo del tamaño del efecto de Cohen (Automático)
+
+# Calcular el tamaño de la muestra para la diferencia de medias
+
+pwr:: pwr.t.test(
+  d=dcohen,                 # Tamaño del efecto (No cambiar)
+  power=0.90,               # Poder estadístico (Requerido)
+  sig.level=0.05,           # Nivel de alfa (Requerido)
+  type="two.sample",        # Tipo de prueba (No cambiar)
+  alternative="two.sided")  # Direccionalidad ("two.sided", "greater" or "less")
+```
+
+<div style="background-color: #d4f7c5; padding: 15px; border-radius: 5px; color: #1e3d00;">
+En este caso  se requieren **190** sujetos en cada grupo, es decir, 190 sujetos que reciban amlodipino y 190 sujetos que reciban nifedipino-GITS.
+</div>
+
+### 🧠 Desafío 1
+
+
+
+<div class="alert alert-warning" role="alert">
+  <strong>¡Atención!</strong> Un grupo de investigadores desea evaluar la efectividad de una dieta baja en grasas versus una dieta mediterránea en la reducción de los niveles de colesterol LDL en adultos con dislipidemia leve, después de 12 semanas de intervención. Estudios previos han mostrado que:
+
+En pacientes con dieta baja en grasas, la media de colesterol LDL al final del tratamiento es de 130 mg/dL, con una desviación estándar de 15 mg/dL.
+
+Se espera que la dieta mediterránea reduzca el LDL en al menos 10 mg/dL más que la dieta baja en grasas (es decir, hasta 120 mg/dL en promedio). Con esta información, calcule el tamaño de la muestra necesario para detectar esta diferencia, con una confianza del 95% y un poder del 80%. 
+
+✍️ Es su turno! Emplee los siguientes chunk (bloque) para escribir el código de `R` y ayudar al hospital.
+
+```{r ssmeancomp2-ejerc1, exercise=TRUE}
+
+
+
+```
+
+
+```{r ssmeancomp2-ejerc1-solution}
+# Valores de los factores de acuerdo con el problema
+
+diff=10                              # Diferencia esperada entre las medias (Requerido)
+sd=15                                # Desviación estándar (Requerido)
+dcohen=abs(diff)/sd                  # Cálculo del tamaño del efecto de Cohen (Automático)
+
+# Calcular el tamaño de la muestra para la diferencia de medias
+
+pwr:: pwr.t.test(
+  d=dcohen,                 # Tamaño del efecto (No cambiar)
+  power=0.80,               # Poder estadístico (Requerido)
+  sig.level=0.05,           # Nivel de alfa (Requerido)
+  type="two.sample",        # Tipo de prueba (No cambiar)
+  alternative="two.sided")  # Direccionalidad ("two.sided", "greater" or "less")
+```
+</div>
+
+<div class="alert alert-info" role="alert">
+🗣️ **Nota**: Lo invitamos a socializar sus hallazgos en el foro de la semana.
+</div>
+
+
+## Tamaño de muestra para estudios de cohortes
+
+<div style="background-color: #f0f0f0; padding: 15px; border-radius: 5px;">
+El consumo de bebidas azucaradas (BAs) se ha asociado con un mayor riesgo de desarrollar diabetes tipo 2 y resistencia a la insulina en diversos estudios realizados en poblaciones de mediana y avanzada edad. Sin embargo, existe poca evidencia sobre el efecto del consumo de BAs en mujeres en edad fértil, especialmente, en relación con la diabetes mellitus gestacional (DMG). Por ello, un grupo de investigadores plantea realizar un estudio de cohorte para evaluar si el consumo regular de BAs antes del embarazo se asocia con un mayor riesgo de DMG. El grupo expuesto estará conformado por mujeres embarazadas que consumen BAs en una frecuencia igual o superior a 5 porciones por semana (≥5 porciones/semana), mientras que el grupo no expuesto incluirá a aquellas que consumen menos de 1 porción al mes (<1 porción/mes).
+
+Con base en evidencia reciente, se estima que la incidencia de DMG en la población general es de aproximadamente 6,4%. Los investigadores suponen que el consumo frecuente de BAs aumentaría este riesgo en un 22%. El estudio se diseñará con un nivel de confianza del 95% y una potencia estadística del 80%. **¿Cuál es el tamaño de muestra necesario en cada grupo para detectar esta diferencia?**
+</div>
+
+### 🎯 ¡Analicemos el enunciado!
+
+En este caso, el equipo de investigadores quiere calcular el tamaño de la muestra necesario para un estudio de cohorte, es decir, se desea conocer el número de sujetos necesarios para detectar una diferencia entre la incidencia de DMG en mujeres embarazadas que consumen BAs con frecuencia ($p_{exp1}$) y aquellas que no lo hacen ($p_{exp0}$). Para esto, se requiere identificar los siguientes factores de la fórmula:
+
+- Proporción esperada en el grupo no expuesto ($p_{exp0}$): En este caso, la proporción esperada es del 6.4% (0.064). Este valor corresponde a la incidencia de DMG en la población general.
+
+- Proporción esperada en el grupo expuesto ($p_{exp1}$): En este caso, la proporción esperada es del 7.8% (0.078). Aunque no se menciona explícitamente en el enunciado, este valor se calcula como $p_{exp1} = p_{exp0}*(1+ 0.22)$, es decir, se asume que el consumo frecuente de BAs aumenta la incidencia de DMG en un 22%, por lo que el riesgo relativo esperado es de $RR=1.22$. 
+
+- Error tipo I ($Z_{\alpha}$): Para un nivel de confianza del 95%, el valor de Z es 1.96. Este valor se obtiene de la tabla de la distribución normal estándar. En `R` se podría obtener por medio de la función `qnorm(1-alfa/2)`.
+
+- Poder ($Z_{1-\beta}$): En este caso, el poder estadístico deseado es del 80%, lo que significa que se desea tener un 80% de probabilidad de detectar una diferencia si realmente existe. El valor de Z correspondiente a un poder del 80% es 0.84. Este valor se obtiene de la tabla de la distribución normal estándar. En `R` se podría obtener por medio de la función `qnorm(1-beta)`.
+
+- Razón de expuestos y no expuestos ($r$): En este caso,  la razón de expuestos y no expuestos no fue especificada, pero se asumirá de 1:1, es decir, se espera que el número de mujeres embarazadas que consumen BAs con frecuencia sea igual al número de aquellas que no lo hacen.
+
+Ahora, estamos listos para indicarle a `R` cómo calcular el tamaño de la muestra. Para ello, utilizaremos la función `epi.sscohortc()` del paquete `epiR`. Esta función requiere que le indiquemos los valores de los parámetros mencionados anteriormente. A continuación, se muestra un ejemplo de cómo utilizar esta función con los datos del problema anterior:
+
+```{r sssamplecohort1, exercise=TRUE}
+# Calcular el tamaño de la muestra para un estudio de cohorte
+epiR::epi.sscohortc(
+  irexp0 = 0.064,           # Proporción esperada en el grupo no expuesto (Requerido)
+  irexp1 = 0.078,           # Proporción esperada en el grupo expuesto (Requerido)
+  r = 1,                    # Razón de expuestos y no expuestos (Requerido)
+  conf.level = 0.95,        # Nivel de confianza (Requerido)
+  power = 0.80,             # Poder estadístico (Requerido)
+  n= NA,                    # Número total de sujetos en el estudio (No cambiar)
+)
+```
+
+El argumento `n` se utiliza para especificar el número total de sujetos en el estudio cuando se utiliza esta misma función para calcular el poder estadístico. En este caso, no es necesario especificar este argumento, por lo que se debe dejar como `n=NA`para que la función `epiR::epi.sscohortc()` calcule el tamaño de la muestra.
+
+<div style="background-color: #d4f7c5; padding: 15px; border-radius: 5px; color: #1e3d00;">
+Un total de **10564** mujeres embarazadas son requeridas para el estudio, de las cuales 5282 deben consumir BAs con frecuencia y 5282 no deben consumir BAs. 
+</div>
+
+### 🧠 Desafío 1
+
+<div class="alert alert-warning" role="alert">
+  <strong>¡Atención!</strong> 
+Un grupo de investigadores desea evaluar si los recién nacidos expuestos al VIH pero no infectados (**grupo expuesto**) tienen un mayor riesgo de hospitalización o muerte por causas infecciosas durante los primeros seis meses de vida, en comparación con los recién nacidos no expuestos al VIH (**grupo no expuesto**). Para ello, se propone un estudio de cohorte prospectivo en una unidad de atención materna comunitaria, donde se incluirán madres VIH positivas y negativas, junto con sus recién nacidos.
+
+Definiciones:
+
+- Expuestos: Recién nacidos de madres con VIH, pero no infectados al nacer.
+
+- No expuestos: Recién nacidos de madres VIH negativas.
+
+- Desenlace: Hospitalización por causa infecciosa o muerte antes de los 6 meses de vida.
+
+Según estudios anteriores, se estima que la proporción de hospitalización o muerte por causas infecciosas en niños no expuestos al VIH es de aproximadamente 8%. Los investigadores esperan que esta proporción aumente a 14% en el grupo expuesto. Se desea diseñar el estudio con un nivel de confianza del 95% y una potencia estadística del 90%.
+
+✍️ Es su turno! Emplee los siguientes chunk (bloque) para escribir el código de `R` y ayudar a los investigadores.
+
+```{r sssamplecohort1-ejerc1, exercise=TRUE}
+
+
+
+```
+
+
+```{r sssamplecohort1-ejerc1-solution}
+# Calcular el tamaño de la muestra para un estudio de cohorte
+epiR::epi.sscohortc(
+  irexp0 = 0.08,            # Proporción esperada en el grupo no expuesto (Requerido)
+  irexp1 = 0.14,            # Proporción esperada en el grupo expuesto (Requerido)
+  r = 1,                    # Razón de expuestos y no expuestos (Requerido)
+  conf.level = 0.95,        # Nivel de confianza (Requerido)
+  power = 0.90,             # Poder estadístico (Requerido)
+  n= NA,                    # Número total de sujetos en el estudio (No cambiar)
+)
+```
+</div>
+
+
+
+<div class="alert alert-info" role="alert">
+🗣️ **Nota**: Lo invitamos a socializar sus hallazgos en el foro de la semana.
+</div>
+
+
+
+
+## Tamaño de muestra para estudios de casos y controles
+
+<div style="background-color: #f0f0f0; padding: 15px; border-radius: 5px;">
+Un grupo de investigadores desea identificar cuáles actividades sociales estuvieron asociadas con un mayor riesgo de infección por SARS-CoV-2 en Colombia, para aportar evidencia útil en la formulación de medidas de prevención para futuras pandemias. Para ello, se propone realizar un estudio de casos y controles, los casos estarán conformados por personas que fueron diagnosticadas con COVID-19 mediante RT-PCR, mientras que los controles serán personas que no presentaron la infección. La información se recogerá mediante entrevistas telefónicas sobre diversas exposiciones comunitarias ocurridas durante los 14 días previos a la infección, como:
+
+- Asistencia a gimnasios.
+
+- Eventos sociales >20 personas.
+
+- Contacto con personas con diagnóstico confirmado de COVID-19
+
+
+Con base en estudios previos, se sabe que en Colombia el 35% de las personas asisten a gimnasios, el 20% de las personas asisten a eventos sociales con más de 20 personas y el 10% de las personas reportan haber tenido contacto con personas con diagnóstico confirmado de COVID-19. Adicionalmente, se espera un OR de 1.8 para la asistencia a gimnasios, 4.9 para eventos sociales y 13.0 para contacto con personas con diagnóstico confirmado de COVID-19. ¿Cuál es el tamaño de muestra mínimo requerido por grupo (casos y controles) para este estudio con un nivel de confianza del 95% y un poder estadístico del 80%?
+</div>
+
+### 🎯 ¡Analicemos el enunciado!
+En este caso, el equipo de investigadores quiere calcular el tamaño de la muestra necesario para un estudio de casos y controles, es decir, se desea conocer el número de sujetos necesarios para detectar una diferencia entre la proporción de personas que asisten a gimnasios, eventos sociales y contacto con personas con diagnóstico confirmado de COVID-19 en los casos y los controles. No obstante, dado que los investigadores desean evaluar simultáneamente tres exposiciones en un mismo estudio, se requiere realizar el cálculo para cada una de las exposiciones por separado y elegir el mayor tamaño de muestra requerido. Para esto, se requiere identificar los siguientes factores de la fórmula:
+
+- Proporción esperada de la exposición en el grupo de controles ($p_{0}$): En este caso, la proporción esperada es del 35% (0.35) para la asistencia a gimnasios, 20% (0.20) para eventos sociales y 10% (0.10) para contacto con personas con diagnóstico confirmado de COVID-19. Estos valores corresponden a la proporción de personas que reportan estas exposiciones en la población general.
+
+- Odds Ratio (OR): En este caso contamos con los OR esperados, los cuales son  de 1.8 para la asistencia a gimnasios, 4.9 para eventos sociales y 13.0 para contacto con personas con diagnóstico confirmado de COVID-19.  En caso de contar con la proporción esperada de la exposición en el grupo de casos ($p_1$), se puede calcular el OR esperado como $OR = (p_1/(1-p_1)) / (p_0/(1-p_0))$.
+
+- Error tipo I ($Z_{\alpha}$): Para un nivel de confianza del 95%, el valor de Z es 1.96. Este valor se obtiene de la tabla de la distribución normal estándar. En `R` se podría obtener por medio de la función `qnorm(1-alfa/2)`.
+
+- Poder ($Z_{1-\beta}$): En este caso, el poder estadístico deseado es del 80%, lo que significa que se desea tener un 80% de probabilidad de detectar una diferencia si realmente existe. El valor de Z correspondiente a un poder del 80% es 0.84. Este valor se obtiene de la tabla de la distribución normal estándar. En `R` se podría obtener por medio de la función `qnorm(1-beta)`.
+
+Ahora, estamos listos para indicarle a `R` cómo calcular el tamaño de la muestra. Para ello, utilizaremos la función `epi.sscc()` del paquete `epiR`. Esta función requiere que le indiquemos los valores de los parámetros mencionados anteriormente. A continuación, se muestra un ejemplo de cómo utilizar esta función con los datos del problema anterior:
+
+```{r sssamplecc1, exercise=TRUE}
+# Calcular el tamaño de la muestra para un estudio de casos y controles
+
+n_gimnasio<-epiR::epi.sscc(
+  OR = 1.8,                 # OR esperado (Requerido)
+  p0 = 0.35,                # Proporción esperada en el grupo de controles (Requerido)
+  r = 1,                    # Razón de casos y controles (Requerido)
+  conf.level = 0.95,        # Nivel de confianza (Requerido)
+  power = 0.80,             # Poder estadístico (Requerido)
+  n= NA,                    # Número total de sujetos en el estudio (No cambiar)
+)
+
+n_eventos<-epiR::epi.sscc(
+  OR = 4.9,                 # OR esperado (Requerido)
+  p0 = 0.20,                # Proporción esperada en el grupo de controles (Requerido)
+  r = 1,                    # Razón de casos y controles (Requerido)
+  conf.level = 0.95,        # Nivel de confianza (Requerido)
+  power = 0.80,             # Poder estadístico (Requerido)
+  n= NA,                    # Número total de sujetos en el estudio (No cambiar)
+)
+
+n_contacto<-epiR::epi.sscc(
+  OR = 13.0,                # OR esperado (Requerido)
+  p0 = 0.10,                # Proporción esperada en el grupo de controles (Requerido)
+  r = 1,                    # Razón de casos y controles (Requerido)
+  conf.level = 0.95,        # Nivel de confianza (Requerido)
+  power = 0.80,             # Poder estadístico (Requerido)
+  n= NA,                    # Número total de sujetos en el estudio (No cambiar)
+)
+
+print(
+  list(
+    casos = list(
+      gimnasio  = n_gimnasio$n.case,
+      eventos   = n_eventos$n.case,
+      contacto  = n_contacto$n.case
+    ),
+    controles = list(
+      gimnasio  = n_gimnasio$n.control,
+      eventos   = n_eventos$n.control,
+      contacto  = n_contacto$n.control
+    )
+  )
+)
+```
+
+El argumento `n` se utiliza para especificar el número total de sujetos en el estudio cuando se utiliza esta misma función para calcular el poder estadístico. En este caso, no es necesario especificar este argumento, por lo que se debe dejar como `n=NA`para que la función `epiR::epi.sscc()` calcule el tamaño de la muestra. 
+
+<div style="background-color: #d4f7c5; padding: 15px; border-radius: 5px; color: #1e3d00;">
+Con base en los resultados obtenidos en R, el número mínimo de sujetos requerido en cada grupo —casos (personas con COVID-19) y controles (personas no infectadas)— es de **189**, con el fin de asegurar que el estudio tenga el poder estadístico suficiente para evaluar simultáneamente las tres exposiciones de interés.
+</div>
+
+### 🧠 Desafío 1
+
+
+<div class="alert alert-warning" role="alert">
+  <strong>¡Atención!</strong> 
+Un grupo de investigadores está interesado en identificar factores de riesgo asociados a la mortalidad en pacientes con tuberculosis multirresistente (MDR-TB). Para ello, proponen un estudio de casos y controles anidado dentro de una cohorte nacional de pacientes con diagnóstico confirmado de MDR-TB. Los casos se definirán como los pacientes que fallecieron por cualquier causa durante el tratamiento para MDR-TB. Por cada caso, se seleccionará un control vivo y en tratamiento al momento del fallecimiento del caso. Uno de los factores que se desea evaluar es la presencia de VIH como posible determinante de muerte. Estudios anteriores sugieren que alrededor del 25% de los controles tiene diagnóstico positivo para VIH. Los investigadores desean poder detectar una razón de oportunidades (OR) de al menos 2.0 para esta asociación. El estudio se diseñará con un nivel de confianza del 95% y un poder estadístico del 90%.¿Cuántos casos y controles se requieren como mínimo para detectar esta asociación con los parámetros especificados? ¿Cuál sería el tamaño de la muestra si el poder  se reduce al 80%?
+
+
+✍️ Es su turno! Emplee los siguientes chunk (bloque) para escribir el código de `R` y ayudar a los investigadores.
+
+```{r sssamplecc1-ejerc1, exercise=TRUE}
+
+
+
+```
+
+
+```{r sssamplecc1-ejerc1-solution}
+# Calcular el tamaño de la muestra para un estudio de casos y controles
+
+# Poder del 90%
+epiR::epi.sscc(
+  OR = 2.0,                 # OR esperado (Requerido)
+  p0 = 0.25,                # Proporción esperada en el grupo de controles (Requerido)
+  r = 1,                    # Razón de casos y controles (Requerido)
+  conf.level = 0.95,        # Nivel de confianza (Requerido)
+  power = 0.90,             # Poder estadístico (Requerido)
+  n= NA,                    # Número total de sujetos en el estudio (No cambiar)
+)
+
+# Poder del 80%
+epiR::epi.sscc(
+  OR = 2.0,                 # OR esperado (Requerido)
+  p0 = 0.25,                # Proporción esperada en el grupo de controles (Requerido)
+  r = 1,                    # Razón de casos y controles (Requerido)
+  conf.level = 0.95,        # Nivel de confianza (Requerido)
+  power = 0.80,             # Poder estadístico (Requerido)
+  n= NA,                    # Número total de sujetos en el estudio (No cambiar)
+)
+
+```
+</div>
+
+
+
+
+<div class="alert alert-info" role="alert">
+🗣️ **Nota**: Lo invitamos a socializar sus hallazgos en el foro de la semana.
+</div>
