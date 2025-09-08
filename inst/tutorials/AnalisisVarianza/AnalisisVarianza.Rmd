@@ -1,74 +1,571 @@
 ---
-title: "DECBioInfer"
-output: learnr::tutorial
+title: "Análisis de varianza de una vía"
+author: "Fabián Gil"
+date: "`r Sys.Date()`"
+output:
+  learnr::tutorial:
+    progressive: true
+    allow_skip: false
+    df_print: default
 runtime: shiny_prerendered
+description: >
+  Análisis de varianza de una vía y pruebas post hoc.
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
-```{r setup, include=FALSE}
-library(learnr)
-knitr::opts_chunk$set(echo = FALSE)
+```{r banner, echo=FALSE, results='asis'}
+htmltools::HTML("
+  <div style='
+    text-align: center;
+    margin-bottom: 20px;
+  '>
+    <img src='images/banner_central.png' style='
+      max-width: 100%;
+      height: auto;
+    '>
+  </div>
+")
 ```
-
-
-## Topic 1
-
-### Exercise 
-
-*Here's a simple exercise with an empty code chunk provided for entering the answer.*
-
-Write the R code required to add two plus two:
-
-```{r two-plus-two, exercise=TRUE}
-
-```
-
-### Exercise with Code
-
-*Here's an exercise with some prepopulated code as well as `exercise.lines = 5` to provide a bit more initial room to work.*
-
-Now write a function that adds any two numbers and then call it:
-
-```{r add-function, exercise=TRUE, exercise.lines = 5}
-add <- function() {
   
-}
+```{r, echo=FALSE, results='asis'}
+htmltools::tags$style(HTML("
+  h1 {
+    color: #1e90ff; /* Azul para títulos principales */
+  }
+
+  h2 {
+    color: #007bff; /* Azul brillante para subtítulos */
+  }
+
+  h3 {
+    color: #0056b3; /* Azul más oscuro para subtítulos más pequeños */
+  }
+"))
 ```
 
-## Topic 2
 
-### Exercise with Hint
+```{r setup, include=FALSE}
+# Attach packages:
 
-*Here's an exercise where the chunk is pre-evaluated via the `exercise.eval` option (so the user can see the default output we'd like them to customize). We also add a "hint" to the correct solution via the chunk immediate below labeled `print-limit-hint`.*
+library(learnr)
+library(fontawesome)
+library(ggplot2)
+library(car)
 
-Modify the following code to limit the number of rows printed to 5:
+# Global code chunk settings:
+knitr::opts_chunk$set(echo = FALSE)
 
-```{r print-limit, exercise=TRUE, exercise.eval=TRUE}
-mtcars
+# data
+
 ```
 
-```{r print-limit-hint}
-head(mtcars)
+## 1. Introducción
+
+
+```{r, echo=FALSE, out.width="100%", fig.align = "center"}
+knitr::include_graphics("images/banner1e.png")  
 ```
 
-### Quiz
+<div class="alert alert-info" role="alert">
+Este tutorial interactivo le permitirá aplicar los conceptos fundamentales del <strong> análisis de varianza (ANOVA) de una vía </strong> mediante la ejecución de código en R. A través de ejemplos guiados y ejercicios prácticos, usted desarrollará habilidades para calcular e interpretar pruebas de hipótesis para comprara las medias de tres o más grupos independientes, verificar los supuesto del ANOVA y realizar pruebas post hoc si el ANOVA es estadísticamente significativo. Estas herramientas son fundamental en investigación clínica y epidemiológica para evaluar la eficacia de múltiples tratamientos, intervenciones o exposiciones, asegurando una evaluación estadísticamente robusta sin aumentar el error tipo I como ocurriría con múltiples pruebas t independientes.
+</div>
 
-*You can include any number of single or multiple choice questions as a quiz. Use the `question` function to define a question and the `quiz` function for grouping multiple questions together.*
 
-Some questions to verify that you understand the purposes of various base and recommended R packages:
+<h3>Créditos</h3>
 
-```{r quiz}
+<p><strong>Autor:</strong> Fabián Gil</p>
+<p><strong>Afiliación:</strong> Departamento de Epidemiología Clínica y Bioestadística, Facultad de Medicina. Pontificia Universidad Javeriana</p>
+<p><strong>Contacto:</strong> <a href="mailto:fgil@javeriana.edu.co">fgil@javeriana.edu.co</a></p>
+
+<p>Este tutorial ha sido desarrollado como parte del curso de <em>Introducción a la Bioestadística en la Maestría en Epidemiología Clínica</em>.</p>
+
+
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank"><img src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" alt="Licencia de Creative Commons" style="border-width:0"/></a><br />Esta
+obra está bajo una
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">licencia
+de Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0
+Internacional</a>.
+
+## 1.1 Descripción del taller
+
+Este taller interactivo introduce el uso del análisis de varianza (ANOVA) de una vía y las pruebas post hoc aplicadas en contextos clínicos y epidemiológicos. A través de ejemplos prácticos en R y actividades guiadas, el enfaís estará en:
+
+- Comparar medias entre varios grupos independientes.
+
+- Verificar los supuestos del ANOVA.
+
+- Interpretar correctamente los resultados estadísticos.
+
+- Aplicar pruebas post hoc como Tukey HSD cuando sea necesario.
+
+
+## 1.2 Temas que abordaremos:
+
+- Introducción al ANOVA de una vía
+
+- Supuestos del ANOVA
+
+- Aplicación práctica en R
+
+- Pruebas post hoc
+
+
+## 1.3 ¿Cómo desarrollar este tutorial?
+
+A lo largo del tutorial, encontrará ejemplos de código, ejercicios de
+programación y preguntas de análisis. Los ejemplos de código y los
+ejercicios pretenden introducir habilidades básicas de R. No es
+necesario tener conocimientos previos sobre R para el desarrollo de este
+tutorial.
+
+#### `r fa("lightbulb", fill = "orange",  height="2em", width="2em")` = Ejemplo de código
+
+Este ícono identifica ejemplos de código listos para usar. Es posible explorar, ejecutar y modificar este código para comprender el funcionamiento de cada función o comando. Para ejecutar el código, solo es necesario presionar el botón **Run code** en la esquina superior derecha.
+
+
+```{r, echo=FALSE, out.width="100%", fig.align = "center"}
+knitr::include_graphics("images/ejemplo.png")  
+```
+
+> **No es necesario preocuparse por “dañar” el código:** si se realizan modificaciones que generan errores, el ejemplo original puede restaurarse en cualquier momento mediante el botón **Start Over** en la esquina superior izquierda.
+
+
+#### `r fa("pencil-alt", fill = "green", height="2em", width="2em")` = Ejercicio de código
+
+Los ejercicios están diseñados para aplicar lo aprendido, escribiendo el código necesario para resolver las preguntas o problemas planteados.
+
+> **Si siente que se ha quedado sin ideas o no sabe cómo continuar con el ejercicio:** puede consultar el botón **Solution** (solución) para recibir orientación sin perder la oportunidad de aprender activamente.
+
+```{r, echo=FALSE, out.width="100%", fig.align = "center"}
+knitr::include_graphics("images/ejercicio.png")  
+```
+
+#### `r fa("comments", fill = "#2c5697", height="2em", width="2em")` = Preguntas de análisis
+
+Estas preguntas invitan a reflexionar sobre los resultados y conceptos. Algunas no poseen una única respuesta correcta, sino que buscan fomentar el pensamiento crítico.
+
+Con frecuencia, estas preguntas están vinculadas con un ejemplo o ejercicio
+de código. En esos casos, asegúrese de ejecutar el código
+correspondiente para poder ver la salida necesaria que le ayudará a
+responder las preguntas.
+
+## 2. Introducción a ANOVA de una vía
+
+El análisis de varianza de una vía (ANOVA one-way) es una prueba estadística que permite comparar las medias de tres o más grupos independientes para determinar si al menos una de ellas difiere estadísticamente significa del resto.
+
+A diferencia de realizar múltiples pruebas t independientes (lo cual aumenta el riesgo de error tipo I), el ANOVA evalúa todas las comparaciones en un solo modelo, controlando adecuadamente la probabilidad de falsos positivos.
+
+El ANOVA de una vía se aplica cuando se tiene una variable cuantitativa continua (ej. colesterol, días de hospitalización, nivel de glucosa) y se desea comparar esa variable entre tres o más grupos independientes definidos por una variable categórica (ej. tipo de tratamiento, grupo etario, nivel de exposición).
+
+El ANOVA de una vía es una **importante metodología en el análisis de estudios clínicos y epidemiológicos** para:
+
+* Comparar la eficacia de múltiples tratamientos o intervenciones, por ejemplo, para reducir síntomas o biomarcadores.
+
+* Evaluar diferencias entre grupos poblacionales según factores como edad, nivel socioeconómico, comorbilidades, entre otros.
+
+* Evitar errores estadísticos asociados a múltiples comparaciones con múltiples pruebas t.
+
+Además, su aplicación adecuada permite tomar decisiones basadas en evidencia, contribuyendo a la validez científica de los hallazgos clínicos.
+
+## 2.1 Supuestos del ANOVA
+
+📌 1. Independencia de las observaciones
+
+> Cada observación debe ser independiente de las demás, es decir, que la medición de un individuo no debe influir en la de otro.
+
+**¿Cómo se asegura?**
+A través del diseño del estudio (por ejemplo, asignación aleatoria o muestreo adecuado). No se prueba estadísticamente: se asume si el diseño es correcto.
+
+**¿Por qué importa?**
+La falta de independencia (como en estudios con datos pareados o repetidos) puede invalidar el análisis y requerir modelos más complejos (ej. ANOVA de medidas repetidas o modelos mixtos).
+
+📌 2. Normalidad de los residuales
+
+> Los residuales del modelo (diferencias entre los valores observados y los esperados por el ANOVA) deben seguir una distribución normal.
+
+**¿Cómo se verifica?**
+Mediante:
+
+Gráficos (histograma, Q-Q plot)
+
+Pruebas estadísticas (como Shapiro-Wilk)
+
+**¿Por qué importa?**
+Si los residuales no son normales y el tamaño muestral es pequeño, los resultados del ANOVA pueden no ser válidos. En muestras grandes, ANOVA es robusto a cierta desviación de la normalidad.
+
+📌 3. Homogeneidad de varianzas (homocedasticidad)
+
+> La varianza de la variable dependiente debe ser similar en todos los grupos.
+
+**¿Cómo se verifica?**
+Con pruebas como:
+
+Prueba de Levene
+
+Prueba de Bartlett (menos robusta si no hay normalidad)
+
+**¿Por qué importa?**
+Si las varianzas son muy diferentes, el ANOVA puede dar resultados engañosos. En ese caso, se pueden usar alternativas como:
+
+ANOVA de Welch
+
+Transformaciones
+
+Pruebas no paramétricas (Kruskal-Wallis)
+
+✅ Resumen
+### ✅ Resumen de los supuestos del ANOVA
+
+| Supuesto                  | Cómo se evalúa                          | Qué hacer si no se cumple                          |
+|--------------------------|------------------------------------------|----------------------------------------------------|
+| Independencia            | Diseño del estudio                       | Usar modelos mixtos o diseños emparejados          |
+| Normalidad de residuos   | Prueba de Shapiro-Wilk, gráficos Q-Q     | Transformar datos o usar ANOVA robusto             |
+| Homogeneidad de varianzas| Prueba de Levene                         | Usar Welch ANOVA o prueba no paramétrica (Kruskal-Wallis) |
+
+
+## 2.1 hipótesis del ANOVA
+
+- $$ H_0: \mu_1 = \mu_2 = \mu_3 = \dots = \mu_k$$
+
+- $$ H_a: \exists\, i, j \; \text{tal que} \; \mu_i \neq \mu_j $$
+
+
+## Pregunta de análisis 2.1
+
+##### `r fa("comments", fill = "#2c5697")` Análisis 2.1
+
+```{r quiz_2_1}
 quiz(
-  question("Which package contains functions for installing other R packages?",
-    answer("base"),
-    answer("tools"),
-    answer("utils", correct = TRUE),
-    answer("codetools")
-  ),
-  question("Which of the R packages listed below are used to create plots?",
-    answer("lattice", correct = TRUE),
-    answer("tools"),
-    answer("stats"),
-    answer("grid", correct = TRUE)
+  question("¿Cuál es la hipótesis nula en un ANOVA de una vía?",
+  answer("Todas las medias son iguales", correct = TRUE),
+  answer("Todas las varianzas son iguales", correct = FALSE),
+  answer("Las medias son diferentes entre todos los grupos", correct = FALSE),
+  answer("La variable dependiente no es normal", correct = FALSE),
+  allow_retry = TRUE,
+  random_answer_order = TRUE
+),
+question("¿Cuál de los siguientes es un supuesto del ANOVA?",
+  answer("Normalidad de los residuos", correct = TRUE),
+  answer("Igual número de observaciones por grupo", correct = FALSE),
+  answer("Linealidad entre variables", correct = FALSE),
+  answer("Correlación alta entre variables", correct = FALSE),
+  allow_retry = TRUE,
+  random_answer_order = TRUE
+),
+question("¿Qué supuesto del ANOVA se evalúa con la prueba de Shapiro-Wilk?",
+    answer("Independencia de las observaciones", correct = FALSE),
+    answer("Normalidad de los residuos", correct = TRUE),
+    answer("Homogeneidad de varianzas", correct = FALSE),
+    answer("Linealidad de la relación entre variables", correct = FALSE),
+    allow_retry = TRUE,
+    random_answer_order = TRUE
   )
 )
 ```
+
+## 3. Exploración de datos y verificación de supuestos
+
+Se emplearán los datos (simulados) que contiene los niveles de colesterol (mg/dL) de pacientes asignados aleatoriamente a tres tipos de dieta: **A**, **B** y **C**
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.1
+
+```{r gen_datos, exercise = TRUE, message=FALSE, warning=FALSE}
+# Simulación de datos
+set.seed(123)  # Para reproducibilidad
+datos <- data.frame(
+dieta = rep(c("A", "B", "C"), times =c(10, 13, 12)),
+colesterol = c(rnorm(10, 200, 10),  # Dieta A
+                 rnorm(13, 190, 12),  # Dieta B
+                 rnorm(12, 180, 15))  # Dieta C
+)
+
+head(datos)
+```
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.2
+
+```{r eje3_2,  exercise = TRUE, exercise.setup = "gen_datos"}
+# Crear un boxplot para visualizar la distribución de colesterol por dieta
+boxplot(colesterol ~ dieta, data = datos,
+        main = "Colesterol por tipo de dieta",
+        ylab = "Colesterol",
+        xlab = "Dieta")
+
+```
+  
+🎯 Pregunta: ¿Observa diferencias aparentes en las medianas o la dispersión de los grupos?
+
+
+## 3.1 Verificación del supuesto de normalidad
+
+En ANOVA de una vía, se asume que los residuales del modelo están normalmente distribuidos. Dado que cada grupo tiene su propia media, esta suposición se traduce, de forma práctica, en que:
+
+> Las observaciones dentro de cada grupo deben seguir aproximadamente una distribución normal.
+
+Verificaremos el supuesto de normalidad usando:
+
+* Histogramas
+* Gráfico Q-Q 
+* Prueba de Shapiro-Wilk
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.3
+
+Usaremos `ggplot2` para crear histogramas de la variable **colesterol** para cada tipo de dieta.
+
+```{r ej3_3, exercise=TRUE, exercise.setup = "gen_datos"}
+# Cargar librería
+library(ggplot2)
+
+# Crear un histograma para la variable 'colesterol' por cada tipo de dieta
+ggplot(datos, aes(x = colesterol, fill = dieta)) + 
+  geom_histogram(binwidth = 5, alpha = 0.6, position = "identity") +
+  facet_wrap(~dieta, scales = "free_y") +
+  theme_minimal() +
+  labs(title = "Distribución de Colesterol por Tipo de Dieta",
+       x = "Colesterol (mg/dL)", y = "Frecuencia")
+```
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.4
+
+Usaremos `ggplot2` para crear gráficos Q-Q para cada tipo de dieta.
+
+```{r eje3_4, exercise=TRUE, exercise.setup = "gen_datos"}
+# Cargar librería
+library(ggplot2)
+
+# Crear gráficos Q-Q para la variable 'colesterol' por cada tipo de dieta
+ggplot(datos, aes(sample = colesterol)) +
+  stat_qq() +
+  stat_qq_line() +
+  facet_wrap(~ dieta) +
+  labs(title = "QQ-plot por grupo de dieta")
+```
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.5
+
+Usaremos la prueba de Shapiro-Wilk para cada tipo de dieta.
+
+```{r eje3_5, exercise=TRUE, exercise.setup = "gen_datos"}
+# Calcular la prueba de Shapiro-Wilk por cada tipo de dieta
+by(datos$colesterol, datos$dieta, shapiro.test)
+```
+
+💡 ¿Qué hacer si no se cumple el supuesto de normalidad?
+
+Si los datos no son normales y el tamaño de muestra es pequeño, puedes:
+
+- Aplicar transformaciones (log, raíz cuadrada, Box-Cox).
+
+- Usar pruebas no paramétricas: como el test de Kruskal-Wallis.
+
+- Verificar si la no normalidad afecta realmente los residuales del modelo (ver sección XXX de este tutorial).
+
+## 3.2 Verificación del supuesto de homogeneidad de varianzas
+
+El ANOVA de una vía también asume que las varianzas de los grupos son homogéneas (homocedasticidad). Esto significa que la variabilidad de la variable dependiente es similar en todos los grupos.
+
+Para verificar este supuesto, utilizaremos:
+* Gráficos de caja (boxplots)
+* Prueba de Levene (más robusta a la no normalidad)
+* Prueba de Bartlett (más potente, pero sensible a no normalidad) 
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.6
+
+
+## 3.2.1 Evaluación gráfica
+
+Usaremos `boxplot` para crear gráficos Q-Q para cada tipo de dieta.
+
+```{r eje3_6, exercise=TRUE, exercise.setup = "gen_datos"}
+# Crear un boxplot para visualizar la homogeneidad de varianzas
+
+boxplot(colesterol ~ dieta, data = datos,
+        main = "Colesterol por tipo de dieta",
+        ylab = "Colesterol",
+        xlab = "Dieta")
+```
+
+
+## 3.2.1 prueba de Levene  
+
+El ANOVA asume que la varianza de la variable dependiente (colesterol) es igual en todos los grupos.
+
+Es decir:
+$$H_0: \sigma^2_A = \sigma^2_B = \sigma^2_C$$
+
+$$H_1: \text{Al menos una varianza es diferente}$$
+
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.7
+
+Usaremos la función `leveneTest` del paquete `car`
+
+```{r eje3_7, exercise=TRUE, exercise.setup = "gen_datos"}
+# Prueba de hipótesis de Levene
+
+library(car)
+leveneTest(colesterol ~ factor(dieta), data = datos)
+
+# factor(dieta) cosidera cada dieta como un grupo
+```
+
+
+## 3.2.2 prueba de Bartlett
+
+Emplea el mismo conjunto de hipótesis de la prueba de Levene
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.7
+
+Usaremos la función `bartlett.test`
+
+```{r eje3_8, exercise=TRUE, exercise.setup = "gen_datos"}
+# Prueba de hipótesis de Bartlett
+
+
+bartlett.test(colesterol ~ factor(dieta), data = datos)
+```
+
+## 4. Apliación del ANOVA
+
+Ya exploramos los datos y verificamos que se cumplen los supuestos necesarios. Ahora aplicaremos el **ANOVA de una vía** para evaluar si existen diferencias en los niveles de colesterol entre las tres dietas.
+
+
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 4.1
+
+Usaremos la función `aov()` para ajustar el modelo y luego `summary()` para examinar la tabla ANOVA.
+
+```{r ej4_1, exercise=TRUE, exercise.setup = "gen_datos"}
+# Ajustar el modelo
+modelo <- aov(colesterol ~ dieta, data = datos)
+
+# Resumen del ANOVA
+summary(modelo)
+
+```
+
+**¿Cómo interpretar la salida del ANOVA?**
+
+La salida de summary(modelo) incluye:
+
+- Df: Grados de libertad
+
+- Sum Sq: Suma de cuadrados (entre grupos y dentro de los grupos)
+
+- Mean Sq: Media cuadrática (Sum Sq / Df)
+
+- F value: Estadístico F (razón entre varianza entre y dentro de los grupos)
+
+- Pr(>F): Valor de p
+
+
+Si el valorde p es menor al nivel de significancia establecido, por ejemplo 0.05, se rechaza la hipótesis nula, lo que indica que al menos una de las medias es significativamente diferente.
+
+🧠 Reflexión : Si el valor de p fue estadísticamente significativo, el siguiente paso sería identificar cuáles grupos difieren entre sí, lo que se hace con pruebas post-hoc como Tukey HSD. Si no fue significativo, no hay evidencia estadística suficiente para decir que hay diferencias entre las dietas.
+
+## Pregunta de análisis 4.1
+
+##### `r fa("comments", fill = "#2c5697")` Análisis 4.1
+
+📌 Pregunta sobre el estadístico F
+
+```{r quiz_4_1}
+quiz(
+question("¿Qué representa el estadístico F en un ANOVA?",
+  answer("La razón entre la variabilidad entre grupos y dentro de los grupos", correct = TRUE),
+  answer("La media de todas las observaciones", correct = FALSE),
+  answer("El tamaño del efecto del grupo más grande", correct = FALSE),
+  answer("El coeficiente de regresión", correct = FALSE),
+  allow_retry = TRUE,
+  random_answer_order = TRUE)
+)
+```
+
+## Pregunta de análisis 4.2
+
+##### `r fa("comments", fill = "#2c5697")` Análisis 4.2
+
+📌 Pregunta de interpretación
+
+```{r quiz_4_2}
+quiz(
+question("En el contexto del ANOVA, un valor de p menor a alfa (0.05) indica que:",
+  answer("Al menos una media grupal es diferente", correct = TRUE),
+  answer("Todas las medias son iguales", correct = FALSE),
+  answer("Las varianzas son iguales", correct = FALSE),
+  answer("La variable dependiente no es normal", correct = FALSE),
+  allow_retry = TRUE,
+  random_answer_order = TRUE)
+)
+```
+
+
+## 5. Pruebas post-hoc y evaluación de los residuos
+
+## 5.1 Prueba de Tukey
+
+Si el ANOVA indicó que existe diferencia significativa entre grupos, necesitamos saber **entre qué grupos** ocurren esas diferencias. Para ello usamos la prueba **Tukey HSD** (Honest Significant Difference).
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 5.1
+
+Usaremos la función `TukeyHSD()` para realizar pruebas de hipótesis a posteriori entre los grupos.
+
+```{r ej5_1, exercise=TRUE, exercise.setup = "gen_datos"}
+# Ajustar el modelo
+modelo <- aov(colesterol ~ dieta, data = datos)
+
+# Prueba post-hoc de Tukey
+TukeyHSD(modelo)
+
+```
+
+
+La salida de TukeyHSD() muestra:
+
+- Comparaciones por pares (ej. B - A, C - A, C - B)
+
+- Diferencia estimada entre medias
+
+- Intervalos de confianza
+
+- Valor de p ajustado (p adj)
+
+Si el p adj es menor al nivel de significancia (en este caso, 0.05), hay diferencia estadísticamente significativa **entre ese par de grupos**.
+
+**En este caso**, se encuentra que existe una diferencia estadísticamente significativa en los niveles promedio de colesterol entre las dietas A y C
+
+
+## 5.2 Evaluación de residuos del modelo
+
+Para comprobar que los supuestos del modelo siguen válidos después de aplicar ANOVA, analizamos los residuos. Usamos:
+
+- Gráfico de residuos vs valores ajustados (homogeneidad)
+
+- Q-Q plot de residuos (normalidad)
+
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 5.2
+
+```{r ej5_2, exercise=TRUE, exercise.setup = "gen_datos"}
+# Ajustar el modelo
+modelo <- aov(colesterol ~ dieta, data = datos)
+
+# Gráficos de diagnóstico
+par(mfrow = c(1, 2))  # Mostrar dos gráficos lado a lado
+plot(modelo, which = 1)  # Residuos vs ajustados
+plot(modelo, which = 2)  # Q-Q plot de residuos
+
+```
+
+
+🧠 Interpretación:
+
+- En el primer gráfico (panel izquierda), los residuos deberían estar dispersos aleatoriamente (sin patrón), en otro caso sería cuestionable la homogeneidad
+
+- En el gráfio de la derecha, el Q-Q plot, los residuos deberían seguir la línea diagonal, grandes desviaciones harían cuestionable el supuesto de normalidad
+
+
+
+

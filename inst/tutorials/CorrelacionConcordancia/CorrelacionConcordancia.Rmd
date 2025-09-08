@@ -1,74 +1,1025 @@
 ---
-title: "DECBioInfer"
-output: learnr::tutorial
+title: "Correlación y concordancia"
+author: "Fabián Gil"
+date: "`r Sys.Date()`"
+output:
+  learnr::tutorial:
+    progressive: true
+    allow_skip: false
+    df_print: default
 runtime: shiny_prerendered
+description: >
+  Correlación y concordancia.
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
-```{r setup, include=FALSE}
-library(learnr)
-knitr::opts_chunk$set(echo = FALSE)
+```{r banner, echo=FALSE, results='asis'}
+htmltools::HTML("
+  <div style='
+    text-align: center;
+    margin-bottom: 20px;
+  '>
+    <img src='images/banner_central.png' style='
+      max-width: 100%;
+      height: auto;
+    '>
+  </div>
+")
 ```
-
-
-## Topic 1
-
-### Exercise 
-
-*Here's a simple exercise with an empty code chunk provided for entering the answer.*
-
-Write the R code required to add two plus two:
-
-```{r two-plus-two, exercise=TRUE}
-
-```
-
-### Exercise with Code
-
-*Here's an exercise with some prepopulated code as well as `exercise.lines = 5` to provide a bit more initial room to work.*
-
-Now write a function that adds any two numbers and then call it:
-
-```{r add-function, exercise=TRUE, exercise.lines = 5}
-add <- function() {
   
-}
+```{r, echo=FALSE, results='asis'}
+htmltools::tags$style(HTML("
+  h1 {
+    color: #1e90ff; /* Azul para títulos principales */
+  }
+
+  h2 {
+    color: #007bff; /* Azul brillante para subtítulos */
+  }
+
+  h3 {
+    color: #0056b3; /* Azul más oscuro para subtítulos más pequeños */
+  }
+"))
 ```
 
-## Topic 2
 
-### Exercise with Hint
+```{r setup, include=FALSE}
+# Attach packages:
 
-*Here's an exercise where the chunk is pre-evaluated via the `exercise.eval` option (so the user can see the default output we'd like them to customize). We also add a "hint" to the correct solution via the chunk immediate below labeled `print-limit-hint`.*
+library(learnr)
+library(fontawesome)
+library(ggplot2)
+library(car)
+library(irr)
+library(DescTools)
+#gradethis::gradethis_setup()
+#tutorial_options(exercise.timelimit = 60)
 
-Modify the following code to limit the number of rows printed to 5:
+# Global code chunk settings:
+knitr::opts_chunk$set(echo = FALSE)
 
-```{r print-limit, exercise=TRUE, exercise.eval=TRUE}
-mtcars
+# data
+
 ```
 
-```{r print-limit-hint}
-head(mtcars)
+## 1. Introducción
+
+
+```{r, echo=FALSE, out.width="100%", fig.align = "center"}
+knitr::include_graphics("images/banner1f.png")  
 ```
 
-### Quiz
+<div class="alert alert-info" role="alert">
+Este tutorial interactivo está diseñado para ayudar a comprender los conceptos de **correlación** y **concordancia**, fundamentales en bioestadística y epidemiología clínica. A través de ejemplos prácticos y ejercicios interactivos, se aprenderá a calcular e interpretar el coeficiente de correlación de **Pearson** para medir la relación entre variables y a evaluar el acuerdo entre dos observadores utilizando el **índice de Kappa**. Este tutorial permitirá poner en práctica lo aprendido mediante ejercicios, donde se calculará la correlación y se analizará el grado de concordancia entre observaciones.
+</div>
 
-*You can include any number of single or multiple choice questions as a quiz. Use the `question` function to define a question and the `quiz` function for grouping multiple questions together.*
 
-Some questions to verify that you understand the purposes of various base and recommended R packages:
+<h3>Créditos</h3>
 
-```{r quiz}
-quiz(
-  question("Which package contains functions for installing other R packages?",
-    answer("base"),
-    answer("tools"),
-    answer("utils", correct = TRUE),
-    answer("codetools")
-  ),
-  question("Which of the R packages listed below are used to create plots?",
-    answer("lattice", correct = TRUE),
-    answer("tools"),
-    answer("stats"),
-    answer("grid", correct = TRUE)
-  )
+<p><strong>Autor:</strong> Fabián Gil</p>
+<p><strong>Afiliación:</strong> Departamento de Epidemiología Clínica y Bioestadística, Facultad de Medicina. Pontificia Universidad Javeriana</p>
+<p><strong>Contacto:</strong> <a href="mailto:fgil@javeriana.edu.co">fgil@javeriana.edu.co</a></p>
+
+<p>Este tutorial ha sido desarrollado como parte del curso de <em>Introducción a la Bioestadística en la Maestría en Epidemiología Clínica</em>.</p>
+
+
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank"><img src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" alt="Licencia de Creative Commons" style="border-width:0"/></a><br />Esta
+obra está bajo una
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">licencia
+de Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0
+Internacional</a>.
+
+## 1.1 Descripción del taller
+
+Este tutorial está diseñado para ayudarte a comprender los conceptos clave de correlación y concordancia, dos herramientas esenciales en bioestadística y epidemiología clínica. A través de ejemplos prácticos en R y actividades guiadas, el enfasís estará en:
+
+- **Correlación:** Utilizar datos simulados para calcular la correlación entre variables. Aquí, podrá experimentar con diferentes datos y observar cómo varía el coeficiente de correlación.
+
+- **Concordancia:** Trabajar con clasificaciones realizadas por dos observadores y calcular el índice de Kappa. Este ejercicio ayudará a comprender la relación entre las mediciones de dos observadores y cómo evaluar su nivel de acuerdo.
+
+
+## 1.2 Temas que abordaremos:
+
+**1. Correlación:**
+
+- Entender qué significa la correlación entre dos variables y cómo se interpreta.
+
+- Aprenderás a calcular el coeficiente de correlación de Pearson y cómo interpretarlo en diferentes contextos.
+
+- Explorarás ejemplos prácticos que ilustran la correlación entre variables clínicas, como la edad y la presión arterial.
+
+
+** 2. Concordancia:**
+
+- Descubrirás cómo medir el grado de acuerdo entre dos observadores utilizando el índice de Kappa.
+
+- Aprenderás a calcular el índice de Kappa y qué implica un valor alto o bajo en términos de acuerdo entre observadores.
+
+- Practicarás la interpretación de la concordancia en el contexto de diagnósticos clínicos o clasificaciones.
+
+
+## 1.3 ¿Cómo desarrollar este tutorial?
+
+A lo largo del tutorial, encontrará ejemplos de código, ejercicios de
+programación y preguntas de análisis. Los ejemplos de código y los
+ejercicios pretenden introducir habilidades básicas de R. No es
+necesario tener conocimientos previos sobre R para el desarrollo de este
+tutorial.
+
+#### `r fa("lightbulb", fill = "orange",  height="2em", width="2em")` = Ejemplo de código
+
+Este ícono identifica ejemplos de código listos para usar. Es posible explorar, ejecutar y modificar este código para comprender el funcionamiento de cada función o comando. Para ejecutar el código, solo es necesario presionar el botón **Run code** en la esquina superior derecha.
+
+
+```{r, echo=FALSE, out.width="100%", fig.align = "center"}
+knitr::include_graphics("images/ejemplo.png")  
+```
+
+> **No es necesario preocuparse por “dañar” el código:** si se realizan modificaciones que generan errores, el ejemplo original puede restaurarse en cualquier momento mediante el botón **Start Over** en la esquina superior izquierda.
+
+
+#### `r fa("pencil-alt", fill = "green", height="2em", width="2em")` = Ejercicio de código
+
+Los ejercicios están diseñados para aplicar lo aprendido, escribiendo el código necesario para resolver las preguntas o problemas planteados.
+
+> **Si siente que se ha quedado sin ideas o no sabe cómo continuar con el ejercicio:** puede consultar el botón **Solution** (solución) para recibir orientación sin perder la oportunidad de aprender activamente.
+
+```{r, echo=FALSE, out.width="100%", fig.align = "center"}
+knitr::include_graphics("images/ejercicio.png")  
+```
+
+#### `r fa("comments", fill = "#2c5697", height="2em", width="2em")` = Preguntas de análisis
+
+Estas preguntas invitan a reflexionar sobre los resultados y conceptos. Algunas no poseen una única respuesta correcta, sino que buscan fomentar el pensamiento crítico.
+
+Con frecuencia, estas preguntas están vinculadas con un ejemplo o ejercicio
+de código. En esos casos, asegúrese de ejecutar el código
+correspondiente para poder ver la salida necesaria que le ayudará a
+responder las preguntas.
+
+## 2. Correlación
+
+La correlación es una medida estadística que describe la relación entre dos variables. En otras palabras, nos indica cómo una variable cambia en relación con otra. Cuando dos variables están correlacionadas, significa que, a medida que una de ellas cambia, la otra también tiende a hacerlo de una manera predecible.
+
+Existen varios tipos de correlación, pero los más comunes son:
+
+- **Correlación positiva:** Cuando dos variables aumentan o disminuyen juntas (por ejemplo, a medida que aumenta la edad, también puede aumentar la presión arterial).
+
+- **Correlación negativa:** Cuando una variable aumenta mientras que la otra disminuye (por ejemplo, a medida que aumenta el nivel de ejercicio, puede disminuir el riesgo de enfermedades cardiovasculares).
+
+- **Correlación nula:** Cuando no hay una relación predecible entre las dos variables.
+
+El coeficiente de **correlación de Pearson** es una medida común de la correlación lineal entre dos variables continuas, y su valor varía entre -1 y 1:
+
+- 1 indica una correlación perfecta positiva.
+
+- -1 indica una correlación perfecta negativa.
+
+- 0 indica que no hay correlación.
+
+
+## 2.1 Coeficiente de correlación de Pearson
+
+El **coeficiente de correlación de Pearson (r)** es una medida numérica que cuantifica la relación lineal entre dos variables cuantitativas. Su valor va de -1 a 1.
+
+
+**Interpretación del coeficiente de correlación (r):**
+
+- r = 1: Correlación positiva perfecta. Ambas variables se mueven en la misma dirección de manera exacta.
+
+- r = -1: Correlación negativa perfecta. Una variable aumenta a medida que la otra disminuye de manera exacta.
+
+- r = 0: No hay correlación. Las variables no tienen relación lineal alguna.
+
+- 0 < r < 1: Correlación positiva (entre moderada y fuerte).
+
+- -1 < r < 0: Correlación negativa (entre moderada y fuerte).
+
+
+**Fórmula del coeficiente de Pearson:**
+
+$$
+r = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum (x_i - \bar{x})^2 \sum (y_i - \bar{y})^2}}
+$$
+
+Donde:
+
+- $ x_i \text{ y }  y_i $ son los valores de las dos variables que estamos comparando.
+- $\bar{x}\text{ y }\bar{y} $ son las medias de las variables $ x \text{ y }  y $, respectivamente.
+
+
+## 2.2 Coeficiente de correlación de Spearman
+
+El **coeficiente de correlación de Spearman ( $r_S$ )** es una medida no paramétrica de la correlación que se utiliza para evaluar la relación entre dos variables ordinales o cuando los datos no siguen una distribución normal. Se basa en los **rangos** de los valores de las variables, en lugar de los valores numéricos reales.
+
+**Características del coeficiente de Spearman:**
+
+- Se usa cuando los datos son ordinales o no siguen una distribución normal.
+
+- Calcula la relación entre los rangos de las variables.
+
+- Valores posibles: igual que Pearson, va de -1 a 1.
+
+   - $r_S = 1$ significa una correlación perfecta positiva.
+   
+   - $r_S = -1$ significa una correlación perfecta negativa.
+   
+   - $r_S = 0$ significa que no hay correlación 
+
+
+** Fórmula de coeficiente de correlación de Spearman**
+
+$r_s = 1 - \frac{6 \sum d_i^2}{n(n^2 - 1)}$
+
+Donde:
+
+- $d_i$ es la diferencia entre los rangos de las variables $x_i \text{ y }  y_i$ para cada observación $i$.
+
+- $n$ es el número total de observaciones.
+
+
+**¿Cuándo usar Spearman?**
+
+- Cuando las variables son ordinales (es decir, no tienen una relación lineal, pero el orden es significativo).
+
+- Cuando los datos no siguen una distribución normal.
+
+## 2.3 Coeficiente de correlación de Kendall
+
+El **coeficiente de correlación de Kendall ($\tau$)** es otro coeficiente no paramétrico que mide la relación entre dos variables ordinales. Es similar a Spearman, pero se basa en el concepto de **concordancia y discordancia** entre los pares de observaciones.
+
+
+**Características del coeficiente de Kendall:**
+
+- También se utiliza para variables ordinales o cuando los datos no siguen una distribución normal.
+
+- Se calcula contando la cantidad de pares de observaciones que son concordantes y discordantes.
+
+- Valores posibles: igual que Spearman, va de -1 a 1.
+
+   - $\tau = 1$ significa una correlación perfecta positiva.
+   
+   - $\tau = -1$ significa una correlación perfecta negativa.
+   
+   - $\tau = 0$ significa que no hay correlación 
+
+
+** Fórmula de coeficiente de correlación de Kendall**
+
+$\tau = \frac{C - D}{\frac{1}{2} n (n-1)}$
+
+Donde:
+
+- $C$ es el número de pares **concordantes**
+
+- $D$ es el número de pares **discordantes**
+
+- $n$ es el número de observaciones
+
+
+**¿Cuándo usar Kendall?**
+
+- Es más robusto que Spearman cuando se trata de datos con empates (pares de valores iguales).
+
+- Es adecuado cuando se busca una medida más confiable de la correlación en pequeñas muestras o con muchos empates.
+
+
+## 2.4 Comparación entre Pearson, Spearman y Kendall
+
+| Característica             | **Pearson**                            | **Spearman**                        | **Kendall**                        |
+|----------------------------|----------------------------------------|-------------------------------------|------------------------------------|
+| **Tipo de datos**           | Continuos, normalmente distribuidos   | Ordinales o no normales             | Ordinales o no normales            |
+| **Supuestos**               | Relación lineal, normalidad           | Sin suposiciones de normalidad      | Sin suposiciones de normalidad     |
+| **Escala de medición**      | Intervalo o razón                     | Ordinal                             | Ordinal                            |
+| **Sensibilidad a empates**  | No aplica                             | Moderada                            | Alta (menos sensible a empates)    |
+| **Interpretación**          | Relación lineal entre dos variables   | Relación monotónica entre variables | Relación ordinal entre variables   |
+| **Rango de valores**        | -1 a 1                                | -1 a 1                              | -1 a 1                             |
+| **Cuándo usar**             | Datos continuos con relación lineal   | Datos ordinales o no lineales       | Datos ordinales con empates        |
+
+
+## 3. Cálculo de correlación en R y su interpretación
+
+La **correlación** es una medida estadística que indica la relación entre dos variables. Si las variables cambian de manera conjunta de forma predecible, se dice que están correlacionadas. 
+
+## 3.1 Ejemplo: Correlación entre edad y colesterol total
+
+Vamos a trabajar con un conjunto de datos simulados donde tenemos dos variables: edad y colesterol total. Estas son variables típicas que pueden estar correlacionadas en estudios clínicos, ya que la presión arterial tiende a aumentar con la edad.
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.1
+
+```{r gen_datos1, exercise = TRUE, message=FALSE, warning=FALSE}
+datos <- data.frame(
+  edad = c(30, 35, 40, 45, 50, 55, 60, 65, 70, 75),
+  colesterol_total = c(180, 185, 190, 195, 200, 210, 215, 220, 230, 240)
 )
+
+head(datos)
 ```
+
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.2
+
+Iniciemos con un gráfico de dispersión para evaluar de forma visual la relación entre las variables
+
+```{r eje3_2,  exercise = TRUE, exercise.setup = "gen_datos1"}
+library(ggplot2)
+
+ggplot(datos, aes(x = edad, y = colesterol_total)) +
+  geom_point(size = 3, color = "blue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Relación entre edad y colesterol total",
+       x = "Edad (años)",
+       y = "Colesterol total (mg/dL)") +
+  theme_minimal()
+
+```
+
+
+¿Qué tipo de relación podría suponer entre estás dos variables?, haga su hipótesis en relación a **dirección** y **fuerza (magnitud de la relación)**
+
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.3
+
+Ahora usaremos la función `cor()` para calcular el coeficiente de correlación de Pearson.
+
+```{r eje3_3,  exercise = TRUE, exercise.setup = "gen_datos1"}
+# Cálculo coeficiente correlación de Pearson
+cor(datos$edad, datos$colesterol_total)
+
+```
+
+El resultado, **r=0.993**, indica una **correlación positiva extremadamente fuerte** entre las dos variables que se están analizando.
+
+**Interpretación:**
+
+- **Valor cercano a 1:** El coeficiente de correlación de Pearson puede variar entre -1 y 1. Un valor de 0.9929 está muy cerca de 1, lo que sugiere que hay una relación casi perfecta entre las dos variables.
+
+- **Correlación positiva:** El signo positivo indica que ambas variables se mueven en la misma dirección. Es decir, cuando una variable aumenta, la otra también tiende a aumentar de manera proporcional, o cuando una disminuye, la otra también lo hace.
+
+**¿Qué significa en términos prácticos?**
+
+En un contexto clínico o epidemiológico, un coeficiente de 0.993 sugiere que las dos variables están muy fuertemente relacionadas de forma lineal. En este caso, este coeficiente indicaría que a medida que la edad aumenta, el colesterol total también tiende a aumentar de manera muy consistente, y la relación es casi perfecta. Sin embargo, es importante recordar que correlación no implica causalidad. Aunque las variables están fuertemente correlacionadas, eso no significa necesariamente que una cause directamente la otra.
+
+
+## 3.2 Ejemplo: Correlación entre edad y frecuencia cardíaca en reposo
+
+En este conjunto de datos presenta la edad y la frecuencia cardíaca en reposo de 13 personas. Se podría esperar una correlación negativa debido a que las personas más jóvenes generalmente tienen una frecuencia cardíaca más baja en reposo.
+
+```{r gen_datos2, exercise = TRUE, message=FALSE, warning=FALSE}
+datos_edad_fcr <- data.frame(
+  edad = c(20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80),
+  fcr = c(55, 74, 72, 67, 62, 59, 55, 58, 68, 57, 52, 50, 56)
+)
+head(datos_edad_fcr)
+```
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.4
+
+Usaremos la función `cor()` para calcular el coeficiente de correlación de Pearson.
+
+```{r eje3_4,  exercise = TRUE, exercise.setup = "gen_datos2"}
+
+# visualización de la relación entre variables 
+library(ggplot2)
+
+ggplot(datos_edad_fcr, aes(x = edad, y = fcr)) +
+  geom_point(size = 3, color = "blue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Relación entre edad y frecuencia cardíaca en reposo",
+       x = "Edad (años)",
+       y = "Frecuencia cardíaca en reposo (latidos/m)") +
+  theme_minimal()
+
+# Cálculo coeficiente correlación de Pearson
+cor(datos_edad_fcr$edad, datos_edad_fcr$fcr)
+
+```
+
+El resultado, **r=-0.597**, indica una **correlación negativa moderada** entre las dos variables que se están analizando.
+
+**Interpretación:**
+
+- **Valor intermedio entre 0 y 1:** La magnitud del coeficiente 0.597 está entre 0.3 y 0.6, lo que sugiere que hay una relación moderada entre las dos variables.
+
+- **Correlación negativa:** El signo negativo indica una relación inversa entre las variables. Es decir, a mayor edad, la frecuencia cardíaca en reposo tiende a ser más baja.
+
+**¿Qué significa en términos prácticos?**
+
+En un contexto clínico o epidemiológico, se observó una correlación moderada a fuerte negativa entre la edad y la frecuencia cardíaca en reposo (r = -0.597), lo que indica que, en promedio, la frecuencia cardíaca tiende a disminuir a medida que aumenta la edad en esta población de estudio. En resumen, la edad **explica parte de la variación de la frecuencia cardíaca en reposo, pero no toda; podría ser útil para interpretar patrones y justificar otros análisis.
+
+
+## 3.3 Ejemplo: Correlación entre estatura y número de llamadas telefónicas diarias
+
+En este conjunto de datos presenta la estatura y el número de llamadas telefónicas que realizan 30 personas por día. 
+
+```{r gen_datos3, exercise = TRUE, message=FALSE, warning=FALSE}
+set.seed(123)  # para reproducibilidad
+
+# 30 individuos
+estatura <- round(rnorm(30, mean = 170, sd = 10), 1)  # estatura en cm
+llamadas <- sample(0:10, 30, replace = TRUE)         # llamadas diarias
+
+# Crear data frame
+datos_est_llam <- data.frame(estatura, llamadas)
+
+head(datos_est_llam)
+```
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.5
+
+Usaremos la función `cor()` para calcular el coeficiente de correlación de Pearson.
+
+```{r eje3_5,  exercise = TRUE, exercise.setup = "gen_datos3"}
+
+# visualización de la relación entre variables 
+library(ggplot2)
+
+ggplot(datos_est_llam, aes(x = estatura, y = llamadas)) +
+  geom_point(size = 3, color = "blue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Relación entre estatura y llamadas telefónicas realizadas",
+       x = "Estatura (cm)",
+       y = "Llamadas diarias") +
+  theme_minimal()
+
+# Cálculo coeficiente correlación de Pearson
+cor(datos_est_llam$estatura, datos_est_llam$llamadas)
+
+```
+
+El resultado, **r=0.15**, indica una **correlación muy débil**, prácticamente casi nula entre las dos variables.
+
+**Interpretación:**
+
+- **Valor intermedio cercano a 0:** La magnitud del coeficiente 0.15 está cercana a cero, lo que sugiere que hay una relación debil entre las dos variables.
+
+- **Correlación positiva:** El signo positivo indica una relación directa entre las variables.
+
+**¿Qué significa en términos prácticos?**
+
+Aunque estadísticamente puede ser diferente de cero, la relación es muy pequeña, y en la práctica clínica o epidemiológica probablemente no sea relevante.
+
+- Desde un punto de vista biológico o clínico: no existe una relación plausible entre estatura y número de llamadas al día.
+
+- Estadísticamente: r = 0.15 indica que sólo ~2% de la variación en el número de llamadas podría explicarse por la estatura (r² = 0.15² ≈ 0.0225).
+
+- Esto refuerza la idea de que la correlación estadística no siempre tiene relevancia práctica, especialmente cuando no hay relación causal plausible.
+
+- Es importante no confundir correlación débil con ausencia total de relación compleja: podría haber subgrupos o relaciones no lineales que Pearson no detecta.
+
+
+## 3.4 Ejemplo: Correlación entre relación entre actividad física y nivel de dolor crónico
+
+En este conjunto de datos emplearemos la información de un grupo de pacientes con dolor lumbar crónico, específicamente la actividad física semanal (horas de ejercicio) y la percepción subjetiva del dolor reportada por el paciente - empleando una escala de dolor (0: sin dolor, hasta 4: dolor muy intenso).
+
+
+```{r gen_datos4, exercise = TRUE, message=FALSE, warning=FALSE}
+
+# Actividad física en horas por semana (continua)
+actividad <- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 3, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 4, 10, 6, 7, 8, 9, 2)
+
+# Escala de dolor (ordinal)
+dolor <- c(4, 3, 3, 2, 2, 1, 1, 0, 0, 0, 0, 3, 2, 2, 1, 1, 0, 0, 0, 3, 3, 2, 2, 1, 1, 0, 0, 0, 3)
+
+# Crear data frame
+datos_af_dolor <- data.frame(actividad, dolor)
+
+head(datos_af_dolor)
+```
+
+En este caso, la **escala de dolor es ordinal**, y los datos no siguen una distribución normal. Por lo tanto, la **correlación de Pearson no sería adecuada**, pero Spearman sí, porque trabaja con rangos y detecta relaciones monotónicas, no necesariamente lineales.
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.6
+
+Usaremos la función `cor()` y el método `spearman` para calcular el coeficiente de correlación de Spearman.
+
+```{r eje3_6,  exercise = TRUE, exercise.setup = "gen_datos4"}
+
+
+# visualización de la relación entre variables 
+library(ggplot2)
+
+ggplot(datos_af_dolor, aes(x = actividad, y = dolor)) +
+  geom_point(size = 3, color = "darkgreen") +
+  geom_smooth(method = "loess", se = FALSE, color = "red") +
+  labs(title = "Relación entre Actividad Física y Dolor Crónico",
+       x = "Horas de actividad física / semana",
+       y = "Escala de dolor (0-4)") +
+  theme_minimal()
+
+# Cálculo coeficiente correlación de Spearman
+cor(datos_af_dolor$actividad, datos_af_dolor$dolor, method = "spearman")
+
+```
+
+El gráfico muestra una tendencia descendente, pero no lineal, reforzando que Spearman es más adecuado que Pearson.
+
+
+El resultado, **$r_s=-0.88$**, indica una **correlación negativa fuerte**. En términos prácticos, esto sugiere que casi todos los pacientes que realizan más actividad física tienden a tener menos dolor crónico, de manera consistente. 
+
+
+## 3.5 Ejemplo: Correlación entre relación entre nivel de actividad física y bienestar percibido
+
+En este conjunto de datos emplearemos la información del nivel de actividad física semanal (en horas) y el bienestar percibido de los pacientes,en una escala ordinal de 0 a 4 (donde, 0: muy bajo bienestar, hasta 4: muy alto bienestar).
+
+
+```{r gen_datos5, exercise = TRUE, message=FALSE, warning=FALSE}
+
+# Actividad física - horas/semana - (continua)
+actividad <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 2, 3, 4, 5, 6, 7, 8, 9, 10, 4, 3, 5, 6, 7, 8, 9, 10, 2, 3, 5, 6)
+
+# Bienestar (ordinal)
+bienestar <- c(1, 2, 2, 3, 3, 4, 4, 3, 3, 4, 2, 3, 2, 1, 3, 4, 3, 3, 4, 2, 3, 1, 3, 3, 4, 3, 3, 2, 3, 1, 3)
+
+# Crear data frame
+datos_af_bie <- data.frame(actividad, bienestar)
+
+head(datos_af_bie)
+```
+
+En este caso, **bienestar percibido** es una variable ordinal, por lo que no es aduado el uso del coeficiente de Pearson; podría en su lugar emplearse el coeficiente de Spearman, pero los datos presentan de **empates** en las observaciones. Por esta razón, el **coeficiente de Kendall** es la opción más adecuada y robusta, además mide la **concordancia y discordancia**  entre pares, lo que es más adecuado cuando no podemos asumir que las diferencias entre los rangos sean constantes.
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 3.7
+
+Usaremos la función `cor()` y el método `kendall` para calcular el coeficiente de correlación de Kendall.
+
+```{r eje3_7,  exercise = TRUE, exercise.setup = "gen_datos5"}
+
+
+# visualización de la relación entre variables 
+library(ggplot2)
+
+ggplot(datos_af_bie, aes(x = actividad, y = bienestar)) +
+  geom_point(size = 3, color = "darkgreen") +
+  geom_smooth(method = "loess", se = FALSE, color = "red") +
+  labs(title = "Relación entre Actividad Física y bienestar percibido",
+       x = "Horas de actividad física / semana",
+       y = "Bienestar percibido (0-4)") +
+  theme_minimal()
+
+# Cálculo coeficiente correlación de Kendall
+cor(datos_af_bie$actividad, datos_af_bie$bienestar, method = "kendall")
+
+```
+
+
+El resultado, **$\tau=0.51$**, indica una **correlación moderada positiva** lo que significa que existe una relación monotónica entre las dos variables: a medida que aumenta la actividad física, también tiende a aumentar el bienestar percibido, aunque no de forma perfecta.
+
+
+
+## **4. Concordancia**
+
+La **concordancia** se refiere al grado de acuerdo entre dos o más observadores o mediciones. En estudios clínicos, es frecuente que diferentes médicos u observadores clasifiquen o midan la misma variable, y la concordancia indica qué tan de acuerdo están en sus clasificaciones o mediciones. En términos sencillos, cuando decimos que hay "concordancia" entre dos mediciones, estamos indicando que ambas mediciones dan resultados similares o coincidentes.
+
+**Tipos de Concordancia:**
+
+- **Concordancia entre observadores:** Dos o más observadores están de acuerdo en su diagnóstico o medición de un fenómeno (por ejemplo, dos médicos que dan el mismo diagnóstico para un paciente).
+
+- **Concordancia entre métodos:** Dos métodos distintos de medición dan resultados similares para la misma variable (por ejemplo, comparar la medición de la presión arterial con dos dispositivos distintos).
+
+- **Concordancia entre mediciones en el tiempo:** Medir una variable en momentos distintos y ver si se obtiene el mismo resultado (por ejemplo, medir la presión arterial de un paciente en diferentes días y ver si los resultados son consistentes).
+
+**Ejemplo Clínico de Concordancia:**
+
+Imaginemos que estamos evaluando la presencia de una enfermedad usando dos métodos diagnósticos:
+
+- Método 1: Una prueba rápida de diagnóstico.
+
+- Método 2: Un test de laboratorio más avanzado.
+
+Queremos saber cuán de acuerdo están estos dos métodos. Si ambos métodos dan el mismo resultado (por ejemplo, ambos son positivos o negativos), decimos que existe una **buena concordancia**.
+
+
+**¿Por qué es importante medir la Concordancia?**
+
+Si dos médicos o dos métodos de diagnóstico no están de acuerdo, los resultados pueden ser ambiguos o poco confiables, lo que puede influir en el tratamiento de los pacientes. Algunas razones para evaluar la concordancia:
+
+- Evaluación de la precisión: Nos ayuda a saber cuán precisos son los métodos de diagnóstico, especialmente cuando se utilizan herramientas distintas.
+
+- Aseguramiento de la calidad en estudios clínicos: Es crucial en la investigación clínica donde los errores de medición pueden afectar los resultados del estudio.
+
+- Mejor toma de decisiones clínicas: Cuanto mayor sea la concordancia, mayor confianza tendrán los clínicos en los resultados obtenidos y en el tratamiento propuesto.
+
+## **4.1 Índice de Kappa ($\kappa$)**
+
+Uno de los métodos más comunes para evaluar la concordancia entre dos observadores o métodos es el índice de Kappa ($ \kappa$). El índice de Kappa es una medida estadística que nos permite evaluar el acuerdo entre dos observadores mientras tiene en cuenta la posibilidad de que el acuerdo ocurra por azar.
+
+**¿Cómo se interpreta el Kappa?**
+
+$ \kappa = 1$: Concordancia perfecta entre los observadores/métodos.
+
+$ \kappa = 0$: No hay concordancia más allá del azar (el acuerdo observado es equivalente al que se esperaría por azar).
+
+$ \kappa < 0$: Concordancia peor que el azar.
+
+$0.01 ≤ \kappa ≤ 0.20$ : Concordancia pobre.
+
+$0.21 ≤ \kappa ≤ 0.40$: Concordancia débil.
+
+$0.41 ≤ \kappa ≤ 0.60$: Concordancia moderada.
+
+$0.61 ≤ \kappa ≤ 0.80$: Concordancia sustancial.
+
+$0.81 ≤ \kappa ≤ 1.0$: Concordancia casi perfecta.
+
+
+**Fórmula del índice de Kappa:**
+
+$κ = \frac{P_o - P_e}{1 - P_e}$
+
+Donde:
+
+- $P_o$ es la **probabilidad observada** de acuerdo entre los dos observadores o métodos.
+- $P_e$ es la **probabilidad esperada** de acuerdo por azar, calculada a partir de las distribuciones de las categorías observadas.
+
+
+## **4.2 Índice de Kappa Ponderado ($\kappa_w$)**
+
+El índice Kappa ponderado ($\kappa_w$) se utiliza cuando las categorías de las mediciones son **ordinales**. A diferencia del índice Kappa estándar, que solo mide acuerdo absoluto, el Kappa ponderado asigna un peso a los desacuerdos, considerando la gravedad de los desacuerdos.
+
+El Kappa ponderado es una extensión del índice Kappa clásico que considera la gravedad de los desacuerdos.
+
+- En el Kappa estándar, cualquier desacuerdo, grande o pequeño, se penaliza de igual forma.
+
+- En el Kappa ponderado, los desacuerdos cercanos reciben un peso menor, y los desacuerdos grandes reciben un peso mayor.
+
+**Ejemplo:**
+
+Dos médicos clasifican el dolor de los pacientes en una escala de 0 a 4:
+
+- Si el Observador 1 dice 1 y el Observador 2 dice 2 → desacuerdo leve.
+
+- Si el Observador 1 dice 0 y el Observador 2 dice 4 → desacuerdo grave.
+
+**Fórmula del índice de Kappa ponderado:**
+
+$\kappa_w = \frac{\sum_{i,j} w_{ij} O_{ij} - \sum_{i,j} w_{ij} E_{ij}}{1 - \sum_{i,j} w_{ij} E_{ij}}$
+
+Donde:
+
+- $w_{ij}$ es el peso asignado al desacuerdo entre las categorías $i\text{ y } j$.
+- $O_{ij}$ es la proporción observada de coincidencias para las categorías $i\text{ y } j$.
+- $E_{ij}$ es la proporción esperada de coincidencias por azar para las categorías $i\text{ y } j$.
+
+Los pesos más comunes son:
+
+- **Peso lineal**: $ w_{ij} = 1 - \frac{|i-j|}{k-1} $  
+- **Peso cuadrático**: $ w_{ij} = 1 - \frac{(i-j)^2}{(k-1)^2} $
+
+donde $k$ es el número total de categorías
+
+
+**¿Cómo se interpreta el Kappa ponderado?**
+
+- $\kappa_w$ cercano a 1 → concordancia casi perfecta.
+
+- $\kappa_w$  cercano a 0 → poco acuerdo más allá del azar.
+
+Se interpreta igual que el Kappa estándar, pero tiene en cuenta la magnitud del desacuerdo, lo que lo hace más adecuado para escalas ordinales.
+
+
+## **4.3 Coeficiente de Correlación Intraclase (ICC)**
+
+El Coeficiente de Correlación Intraclase (ICC) mide el grado de **acuerdo** o **consistencia** entre **varias mediciones** de la misma variable realizadas por diferentes observadores, instrumentos o en diferentes momentos.
+
+**Fórmula del ICC:**
+
+$ICC = \frac{\sigma^2_\text{entre}}{\sigma^2_\text{entre} + \sigma^2_\text{dentro}}$
+
+Donde:
+
+- $ \sigma^2_\text{entre} $ = varianza **entre sujetos**  
+- $ \sigma^2_\text{dentro} $ = varianza **dentro de los sujetos** (error de medición)  
+
+**¿Cómo se interpreta el ICC?**
+
+- $ ICC = 1 $ → acuerdo perfecto entre mediciones  
+- $ ICC > 0.75 $ → excelente fiabilidad  
+- $ 0.50 \le ICC \le 0.75 $ → fiabilidad moderada  
+- $ ICC < 0.50 $ → baja fiabilidad
+
+**Diferencias entre ICC y Kappa**
+
+| Aspecto | Kappa (Cohen) | ICC (Coeficiente de Correlación Intraclase) |
+|---------|-----------------|-----------------------------------------------|
+| **Tipo de variable** | Categórica (nominal u ordinal) | Numérica continua u ordinal tratada como continua |
+| **Objetivo principal** | Medir **acuerdo entre dos observadores** más allá del azar | Medir **concordancia o fiabilidad** entre varias mediciones del mismo sujeto |
+| **Considera magnitud del desacuerdo** | No (Kappa simple), sí si es **Kappa ponderado** | Sí, la diferencia entre valores se incorpora en la varianza |
+| **Número de observadores** | Generalmente dos (Kappa clásico); hay extensiones multirrater | Dos o más; puede considerar todos los observadores simultáneamente |
+| **Sensibilidad a la escala de medida** | Solo categorías discretas | Escalas continuas o discretas tratadas como continuas |
+| **Interpretación** | 0 = acuerdo por azar, 1 = acuerdo perfecto | 0 = no hay concordancia, 1 = concordancia perfecta entre mediciones |
+| **Ejemplo clínico** | Dos médicos clasifican pacientes como "leve", "moderado" o "grave" | Tres enfermeras miden la presión arterial de los mismos pacientes varias veces |
+
+
+## **4.4 Coeficiente de Correlación y Concordancia (CCC)**
+
+El **CCC** combina dos elementos esenciales de la concordancia:
+
+- **Precisión $(\rho)$:** mide la correlación lineal entre dos mediciones (como Pearson).
+
+- **Exactitud (Cb):** mide qué tan cerca están los valores de la **línea de identidad** $y = x$, es decir, si los valores son iguales en magnitud, no solo que se muevan juntos.
+
+
+**Fórmula del CCC:**
+
+$\rho_c = \frac{2 \, \sigma_{xy}}{\sigma_x^2 + \sigma_y^2 + (\mu_x - \mu_y)^2}$
+
+Donde:
+
+- $\sigma_{xy}$ = covarianza entre las dos mediciones $i\text{ y } j$  
+- $\sigma_x^2$ = varianza de la medición $X$  
+- $\sigma_y^2$ = varianza de la medición $Y$  
+- $\mu_x$ = media de la medición $X$  
+- $\mu_y$ = media de la medición $Y$  
+
+**¿Cómo se interpreta el CCC?**
+
+- $\rho_c = 1$ → concordancia perfecta (precisión + exactitud)  
+- $\rho_c = 0$ → no hay concordancia  
+- Valores negativos → acuerdo peor que azar
+
+
+## 5. Cálculo de concordancia en R y su interpretación
+
+La **concordancia** es una técnica estadística que evalúa **el grado de acuerdo entre mediciones, observadores o métodos**, más allá de la simple asociación entre variables.
+
+Se utiliza para:
+
+- Comprobar la fiabilidad de un instrumento de medición.
+
+- Comparar diferentes métodos que miden lo mismo.
+
+- Evaluar la consistencia entre observadores en estudios clínicos y epidemiológicos.
+
+A diferencia de la correlación, que solo indica si dos variables cambian juntas, la concordancia **mide si las mediciones coinciden en valor**, considerando tanto la **precisión** como la **exactitud**. 
+
+## 5.1 Ejemplo: Acuerdo en diagnóstico de hipertensión
+
+Dos médicos evalúan si un grupo de 10 pacientes tiene hipertensión (Sí/No). Queremos saber cuánto coinciden en sus clasificaciones, ajustando por el azar.
+
+| Paciente | Médico 1 | Médico 2 |
+|----------|----------|----------|
+| 1        | Sí       | Sí       |
+| 2        | No       | No       |
+| 3        | Sí       | Sí       |
+| 4        | No       | Sí       |
+| 5        | Sí       | Sí       |
+| 6        | No       | No       |
+| 7        | Sí       | Sí       |
+| 8        | No       | No       |
+| 9        | Sí       | No       |
+| 10       | No       | No       |
+
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 5.1
+
+```{r gen_datos5_1, exercise = TRUE, message=FALSE, warning=FALSE}
+# Datos
+medico1 <- c("Sí","No","Sí","No","Sí","No","Sí","No","Sí","No")
+medico2 <- c("Sí","No","Sí","Sí","Sí","No","Sí","No","No","No")
+
+# Tabla de contingencia
+table(medico1, medico2)
+
+
+# Porcentaje de acuerdo simple
+
+sum(medico1 == medico2) / length(medico1)
+```
+
+La concordancia observada entre los dos médicos, sin ajustar por azar, es la suma de la diagonal en la tabla de contingencia dividido el total de pacientes. Esto indica que 8 de cada 10 pacientes fueron clasificados igual por ambos médicos.
+
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 5.2
+
+Ahora usaremos la función `kappa2()` del paquete `irr` para calcular el coeficiente Kappa.
+
+```{r eje5_2,  exercise = TRUE, exercise.setup = "gen_datos5_1"}
+
+# Cargar el paquete
+library(irr)
+
+# Calcular Kappa de Cohen
+datos <- data.frame(medico1, medico2)
+kappa2(datos, "unweighted")
+
+```
+
+El resultado, **$\kappa=0.60$**, indica un **acuerdo moderado** entre los dos médicos, ajustando por el azar.
+
+**¿Qué significa en términos prácticos?**
+
+- Los dos médicos coinciden en la mayoría de los pacientes, pero hay algunos desacuerdos.
+
+- Esto significa que la clasificación de hipertensión es relativamente confiable, aunque no perfecta.
+
+- Ajustando por el azar, el Kappa indica que el acuerdo no es solo coincidencia, sino que refleja una verdadera consistencia en la evaluación clínica.
+
+
+## 5.2 Ejemplo: Acuerdo en severidad del dolor crónico
+
+Dos fisioterapeutas evalúan a 8 pacientes sobre la severidad del dolor crónico, usando una escala ordinal:
+
+- 0 = Sin dolor
+
+- 1 = Dolor leve
+
+- 2 = Dolor moderado
+
+- 3 = Dolor severo
+
+Queremos medir **cuánto coinciden sus evaluaciones**, considerando que **un desacuerdo de 1 nivel es menos grave que un desacuerdo de 3 niveles**.
+
+| Paciente | Fisioterapeuta 1 | Fisioterapeuta 2 |
+|----------|-----------------|-----------------|
+| 1        | 0               | 0               |
+| 2        | 1               | 1               |
+| 3        | 2               | 1               |
+| 4        | 3               | 2               |
+| 5        | 2               | 2               |
+| 6        | 1               | 1               |
+| 7        | 3               | 3               |
+| 8        | 0               | 1               |
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 5.2
+
+```{r gen_datos5_2, exercise = TRUE, message=FALSE, warning=FALSE}
+# Datos
+fisioterapeuta1 <- c(0, 1, 2, 3, 2, 1, 3, 0)
+fisioterapeuta2 <- c(0, 1, 1, 2, 2, 1, 3, 1)
+
+# Tabla de contingencia
+table(fisioterapeuta1, fisioterapeuta2)
+
+
+# Porcentaje de acuerdo simple
+
+sum(fisioterapeuta1 == fisioterapeuta2) / length(fisioterapeuta1)
+```
+
+La concordancia observada entre los fisioterapeutas, sin ajustar por azar, es la suma de la diagonal en la tabla de contingencia dividido el total de pacientes. Esto indica que el  62.5% los pacientes fueron clasificados igual por ambos fisioterapeutas.
+
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 5.3
+
+Ahora usaremos la función `kappa2()` del paquete `irr` para calcular el coeficiente Kappa.
+
+```{r eje5_3,  exercise = TRUE, exercise.setup = "gen_datos5_2"}
+
+# Cargar el paquete
+library(irr)
+
+# Crear data frame
+datos <- data.frame(fisioterapeuta1, fisioterapeuta2)
+
+# Calcular Kappa ponderado (weights = "squared")
+kappa2(datos, "squared")
+
+```
+
+El resultado, **$\kappa_w=0.812$**, indica un **excelente acuerdo** entre los dos fisioterapeutas, ajustando por el azar.
+
+**¿Qué significa en términos prácticos?**
+
+- Los fisioterapeutas coinciden en la mayoría de los pacientes.
+
+- Los desacuerdos que existen son leves (por ejemplo, un nivel de diferencia en la escala de dolor), por lo que no afectan de forma importante la evaluación general.
+
+- Este valor indica que la medición ordinal es confiable y que se puede usar de manera consistente en estudios clínicos o seguimiento de pacientes.
+
+
+## 5.3 Ejemplo: Fiabilidad en medición de presión arteria
+
+Queremos evaluar la **fiabilidad de un dispositivo para medir presión arterial**.Para esto, tres enfermeros miden la **presión sistólica (mmHg)** en 6 pacientes usando el mismo dispositivo.
+
+Queremos determinar **cuánto varían las mediciones entre pacientes versus entre enfermeros.**
+
+| Paciente | Enfermero 1 | Enfermero 2 | Enfermero 3 |
+|----------|------------|------------|------------|
+| 1        | 120        | 122        | 121        |
+| 2        | 135        | 136        | 134        |
+| 3        | 128        | 130        | 129        |
+| 4        | 140        | 138        | 139        |
+| 5        | 125        | 126        | 124        |
+| 6        | 132        | 133        | 131        |
+
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 5.4
+
+```{r gen_datos5_4, exercise = TRUE, message=FALSE, warning=FALSE}
+# Datos
+enfermero1 <- c(120, 135, 128, 140, 125, 132)
+enfermero2 <- c(122, 136, 130, 138, 126, 133)
+enfermero3 <- c(121, 134, 129, 139, 124, 131)
+
+
+# Crear data frame
+datos <- data.frame(enfermero1, enfermero2, enfermero3)
+
+```
+
+
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 5.5
+
+Ahora usaremos la función `icc()` del paquete `irr` para calcular el coeficiente de correlación intraclase.
+
+```{r eje5_5,  exercise = TRUE, exercise.setup = "gen_datos5_4"}
+
+# Cargar el paquete
+library(irr)
+
+# Calcular ICC (modelo de dos vías, acuerdo absoluto)
+icc(datos, model="twoway", type="agreement", unit="single")
+
+
+```
+
+El resultado, **$ICC=0.977**, indica un **excelente fiabilidad** entre los enfermeros. Esto significa que la mayoría de la variabilidad se debe a diferencias entre pacientes, no a diferencias entre enfermeros. Un ICC alto indica que el dispositivo y el procedimiento de medición son consistentes y confiables.
+
+**¿Qué significa en términos prácticos?**
+
+- En términos clínicos, puedes confiar en que los valores reflejan verdaderamente la presión arterial del paciente, independientemente de qué enfermero mida.
+
+
+## 5.4 Ejemplo: Concordancia entre glucómetro y laboratorio
+
+Queremos evaluar la **concordancia entre dos métodos para medir glucosa en sangre:**
+
+- Método A: glucómetro estándar
+
+- Método B: laboratorio clínico
+
+Se mide la **glucosa (mg/dL)** de 8 pacientes con ambos métodos, y queremos saber **cuánto coinciden exactamente**, no solo correlacionarse.
+
+| Paciente | Método A (Glucómetro) | Método B (Laboratorio) |
+|----------|---------------------|-----------------------|
+| 1        | 95                  | 97                    |
+| 2        | 110                 | 112                   |
+| 3        | 130                 | 128                   |
+| 4        | 105                 | 107                   |
+| 5        | 140                 | 138                   |
+| 6        | 120                 | 122                   |
+| 7        | 100                 | 102                   |
+| 8        | 115                 | 117                   |
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 5.6
+
+```{r gen_datos5_6, exercise = TRUE, message=FALSE, warning=FALSE}
+# Datos
+metodoA <- c(95, 110, 130, 105, 140, 120, 100, 115)
+metodoB <- c(97, 112, 128, 107, 138, 122, 102, 117)
+
+
+```
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 5.7
+
+gráfico de dispersión con línea de identidad, que muestra visualmente la concordancia entre los dos métodos de medición de glucosa:
+
+```{r eje5_7,  exercise = TRUE, exercise.setup = "gen_datos5_6"}
+
+# Crear data frame
+datos <- data.frame(Paciente = 1:8, MetodoA = metodoA, MetodoB = metodoB)
+
+# Gráfico básico
+plot(datos$MetodoA, datos$MetodoB,
+     xlab = "Método A (Glucómetro)",
+     ylab = "Método B (Laboratorio)",
+     main = "Concordancia entre glucómetro y laboratorio",
+     pch = 19, col = "blue", xlim = c(90, 145), ylim = c(90, 145))
+
+# Línea de identidad
+abline(a = 0, b = 1, col = "red", lwd = 2, lty = 2)
+```
+
+En este gráfico, cada punto representa un paciente. El eje X representa las mediciones con el Método A (Glucómetro) y el eje Y las mediciones con el Método B (Laboratorio). La línea roja punteada (y = x) es la línea de identidad, donde los valores de ambos métodos serían idénticos. Cuanto más cerca estén los puntos de la línea, mayor concordancia (CCC cercano a 1). Los números sobre los puntos representan los pacientes para identificar fácilmente las mediciones.
+
+##### `r fa("lightbulb", fill = "orange")` Ejemplo 5.8
+
+Ahora usaremos la función `CCC()` del paquete `DescTools` para calcular el coeficiente de correlación y concordancia de Lin.
+
+```{r eje5_8,  exercise = TRUE, exercise.setup = "gen_datos5_6"}
+
+# Cargar el paquete
+library(DescTools)
+
+# Calcular CCC
+CCC(metodoA, metodoB)
+
+```
+
+El resultado, **$ICC=0.989**, indica un **excelente concordancia** entre los métodos. Esto indica que los dos métodos miden prácticamente lo mismo, tanto en precisión (correlación) como en **exactitud (acuerdo con la línea de identidad)**. En términos clínicos, el glucómetro estándar puede considerarse equivalente al laboratorio, con muy poca diferencia sistemática.
+
+**¿Qué significa en términos prácticos?**
+
+- Los valores medidos por el **glucómetro y el laboratorio están casi perfectamente alineados.**
+
+- Esto significa que ambos **métodos producen resultados prácticamente intercambiables.**
+
+- La medición combina precisión (los valores se mueven juntos) y exactitud (los valores están muy cerca de la línea de identidad y no hay sesgo sistemático).
+
+
