@@ -1,17 +1,17 @@
 ---
-title: "Análisis de varianza de una vía"
+title: "Módulo 3: Análisis de varianza de una vía"
 author: "Fabián Gil"
 date: "`r Sys.Date()`"
 output:
   learnr::tutorial:
-    progressive: true
-    allow_skip: false
+    progressive: false
+    allow_skip: true
     df_print: default
 runtime: shiny_prerendered
 description: >
-  Análisis de varianza de una vía y pruebas post hoc.
-editor_options: 
-  markdown: 
+  Tutorial para análisis de varianza de una vía y pruebas post hoc.
+editor_options:
+  markdown:
     wrap: 72
 ---
 
