@@ -69,7 +69,7 @@ htmltools::tags$style(HTML("
 
 ```{r, echo=FALSE, out.width="100%", fig.align = "center"}
 knitr::include_graphics("images/banner.png")  
-
+```
 
 <div class="alert alert-info" role="alert">
 Este tutorial interactivo le permitirá aplicar los conceptos aprendidos sobre  <strong> estadística no paramétrica </strong> mediante la ejecución de código en `R`. A través de ejemplos guiados y ejercicios prácticos, usted desarrollará habilidades para implementar pruebas estadísticas no paramétricas, interpretar sus resultados y tomar decisiones informadas en contextos donde no se cumplen los supuestos de normalidad. 
