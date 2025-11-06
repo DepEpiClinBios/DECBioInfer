@@ -68,7 +68,11 @@ htmltools::tags$style(HTML("
 
 
 ```{r, echo=FALSE, out.width="100%", fig.align = "center"}
+<<<<<<< HEAD
 knitr::include_graphics("images/banner.png")  
+=======
+knitr::include_graphics("images/banner1c.png")  
+>>>>>>> 8f870c2e034406fde5b87e47fd1803f32d6eb8eb
 ```
 
 
